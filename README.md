@@ -10,14 +10,14 @@ A lightweight, fluent PHP SQL query builder that generates SQL and parameters. D
 
 ## Features
 
-- ?? **Fluent API** - Chain methods for readable query construction
-- ?�� **SQL Injection Protection** - Automatic parameter binding with prepared statements
-- ?�� **Raw SQL Support** - Insert raw SQL expressions with `raw()`
-- ?�� **Multiple Query Types** - SELECT, INSERT, UPDATE, DELETE, COUNT
-- ?�� **JOIN Support** - INNER, LEFT, RIGHT joins with aliases
-- ?�� **Advanced Conditions** - LIKE, IN, BETWEEN, comparison operators
-- ?�� **Database Agnostic** - Returns SQL + params, use with any DB connection
-- ?�� **Lightweight** - Minimal footprint with zero required dependencies
+- 🔗 **Fluent API** - Chain methods for readable query construction
+- 🛡️ **SQL Injection Protection** - Automatic parameter binding with prepared statements
+- 🔧 **Raw SQL Support** - Insert raw SQL expressions with `raw()`
+- 📝 **Multiple Query Types** - SELECT, INSERT, UPDATE, DELETE, COUNT
+- 🔀 **JOIN Support** - INNER, LEFT, RIGHT joins with aliases
+- 🎯 **Advanced Conditions** - LIKE, IN, BETWEEN, comparison operators
+- 🌐 **Database Agnostic** - Returns SQL + params, use with any DB connection
+- 🪶 **Lightweight** - Minimal footprint with zero required dependencies
 
 ## Installation
 
@@ -104,7 +104,7 @@ $users = $stmt->fetchAll();
 
 ### Why This Matters
 
-**??Dangerous (Never do this):**
+**❌ Dangerous (Never do this):**
 ```php
 // Direct concatenation = SQL injection vulnerability!
 $email = $_POST['email'];
@@ -114,7 +114,7 @@ $sql = "SELECT * FROM users WHERE email = '$email'";
 // This returns ALL users!
 ```
 
-**??Safe (EasyQuery way):**
+**✅ Safe (EasyQuery way):**
 ```php
 $email = $_POST['email'];
 $q = Builder::table('users')
