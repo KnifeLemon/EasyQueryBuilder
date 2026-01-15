@@ -1,0 +1,450 @@
+<?php
+namespace KnifeLemon\GenerateQuery\Tests;
+
+use KnifeLemon\GenerateQuery\GenerateQuery;
+use KnifeLemon\GenerateQuery\GenerateQueryRaw;
+use PHPUnit\Framework\TestCase;
+
+class GenerateQueryTest extends TestCase
+{
+    /**
+     * Test basic SELECT query
+     */
+    public function testBasicSelect(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name', 'email'])
+            ->build();
+
+        $this->assertEquals('SELECT id, name, email FROM users', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test SELECT with WHERE conditions
+     */
+    public function testSelectWithWhere(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->where(['status' => 'active', 'role' => 'admin'])
+            ->build();
+
+        $this->assertEquals('SELECT id, name FROM users WHERE status = ? AND role = ?', $q['sql']);
+        $this->assertEquals(['active', 'admin'], $q['params']);
+    }
+
+    /**
+     * Test SELECT with table alias
+     */
+    public function testSelectWithAlias(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->alias('u')
+            ->select(['u.id', 'u.name'])
+            ->where(['u.status' => 'active'])
+            ->build();
+
+        $this->assertEquals('SELECT u.id, u.name FROM users AS u WHERE u.status = ?', $q['sql']);
+        $this->assertEquals(['active'], $q['params']);
+    }
+
+    /**
+     * Test SELECT with INNER JOIN
+     */
+    public function testSelectWithInnerJoin(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->alias('u')
+            ->select(['u.id', 'u.name', 'p.title'])
+            ->innerJoin('posts', 'u.id = p.user_id', 'p')
+            ->build();
+
+        $this->assertEquals(
+            'SELECT u.id, u.name, p.title FROM users AS u INNER JOIN posts AS p ON u.id = p.user_id',
+            $q['sql']
+        );
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test SELECT with LEFT JOIN
+     */
+    public function testSelectWithLeftJoin(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->alias('u')
+            ->select(['u.id', 'u.name', 'p.title'])
+            ->leftJoin('posts', 'u.id = p.user_id', 'p')
+            ->build();
+
+        $this->assertEquals(
+            'SELECT u.id, u.name, p.title FROM users AS u LEFT JOIN posts AS p ON u.id = p.user_id',
+            $q['sql']
+        );
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test WHERE with comparison operators
+     */
+    public function testWhereWithOperators(): void
+    {
+        $q = GenerateQuery::table('products')
+            ->where([
+                'price' => ['>=', 100],
+                'stock' => ['<', 50],
+                'name' => ['LIKE', '%phone%']
+            ])
+            ->build();
+
+        $this->assertEquals(
+            'SELECT * FROM products WHERE price >= ? AND stock < ? AND name LIKE ?',
+            $q['sql']
+        );
+        $this->assertEquals([100, 50, '%phone%'], $q['params']);
+    }
+
+    /**
+     * Test WHERE with IN operator
+     */
+    public function testWhereWithIn(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->where(['id' => ['IN', [1, 2, 3, 4, 5]]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE id IN (?, ?, ?, ?, ?)', $q['sql']);
+        $this->assertEquals([1, 2, 3, 4, 5], $q['params']);
+    }
+
+    /**
+     * Test WHERE with BETWEEN operator
+     */
+    public function testWhereWithBetween(): void
+    {
+        $q = GenerateQuery::table('products')
+            ->where(['price' => ['BETWEEN', [100, 500]]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM products WHERE price BETWEEN ? AND ?', $q['sql']);
+        $this->assertEquals([100, 500], $q['params']);
+    }
+
+    /**
+     * Test orWhere condition
+     */
+    public function testOrWhere(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->where(['role' => 'admin'])
+            ->orWhere(['role' => 'moderator'])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE role = ? AND (role = ?)', $q['sql']);
+        $this->assertEquals(['admin', 'moderator'], $q['params']);
+    }
+
+    /**
+     * Test orWhere with multiple conditions (should be joined with OR inside the group)
+     */
+    public function testOrWhereMultipleConditions(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->where(['status' => 'active'])
+            ->orWhere(['role' => 'admin', 'role2' => 'moderator'])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE status = ? AND (role = ? OR role2 = ?)', $q['sql']);
+        $this->assertEquals(['active', 'admin', 'moderator'], $q['params']);
+    }
+
+    /**
+     * Test SELECT with ORDER BY
+     */
+    public function testOrderBy(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->orderBy('created_at DESC')
+            ->build();
+
+        $this->assertEquals('SELECT id, name FROM users ORDER BY created_at DESC', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test SELECT with GROUP BY
+     */
+    public function testGroupBy(): void
+    {
+        $q = GenerateQuery::table('orders')
+            ->select(['user_id', 'COUNT(*) as total'])
+            ->groupBy('user_id')
+            ->build();
+
+        $this->assertEquals('SELECT user_id, COUNT(*) as total FROM orders GROUP BY user_id', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test SELECT with LIMIT
+     */
+    public function testLimit(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->limit(10)
+            ->build();
+
+        $this->assertEquals('SELECT id, name FROM users LIMIT 10', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test SELECT with LIMIT and OFFSET
+     */
+    public function testLimitWithOffset(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->limit(10, 20)
+            ->build();
+
+        $this->assertEquals('SELECT id, name FROM users LIMIT 10 OFFSET 20', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test COUNT query
+     */
+    public function testCount(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->count()
+            ->where(['status' => 'active'])
+            ->build();
+
+        $this->assertEquals('SELECT COUNT(*) AS cnt FROM users WHERE status = ?', $q['sql']);
+        $this->assertEquals(['active'], $q['params']);
+    }
+
+    /**
+     * Test COUNT with custom column
+     */
+    public function testCountWithColumn(): void
+    {
+        $q = GenerateQuery::table('orders')
+            ->count('DISTINCT user_id')
+            ->build();
+
+        $this->assertEquals('SELECT COUNT(DISTINCT user_id) AS cnt FROM orders', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test INSERT query
+     */
+    public function testInsert(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->insert([
+                'name' => 'John Doe',
+                'email' => 'john@example.com',
+                'status' => 'active'
+            ])
+            ->build();
+
+        $this->assertEquals('INSERT INTO users SET name = ?, email = ?, status = ?', $q['sql']);
+        $this->assertEquals(['John Doe', 'john@example.com', 'active'], $q['params']);
+    }
+
+    /**
+     * Test UPDATE query
+     */
+    public function testUpdate(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->update([
+                'status' => 'inactive',
+                'updated_at' => '2026-01-15 10:00:00'
+            ])
+            ->where(['id' => 123])
+            ->build();
+
+        $this->assertEquals(
+            'UPDATE users SET status = ?, updated_at = ? WHERE id = ?',
+            $q['sql']
+        );
+        $this->assertEquals(['inactive', '2026-01-15 10:00:00', 123], $q['params']);
+    }
+
+    /**
+     * Test DELETE query
+     */
+    public function testDelete(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->delete()
+            ->where(['id' => 123])
+            ->build();
+
+        $this->assertEquals('DELETE FROM users WHERE id = ?', $q['sql']);
+        $this->assertEquals([123], $q['params']);
+    }
+
+    /**
+     * Test raw SQL in UPDATE
+     */
+    public function testRawSqlInUpdate(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->update([
+                'points' => GenerateQuery::raw('points + 100'),
+                'updated_at' => GenerateQuery::raw('NOW()')
+            ])
+            ->where(['id' => 123])
+            ->build();
+
+        $this->assertEquals(
+            'UPDATE users SET points = points + 100, updated_at = NOW() WHERE id = ?',
+            $q['sql']
+        );
+        $this->assertEquals([123], $q['params']);
+    }
+
+    /**
+     * Test raw SQL in INSERT
+     */
+    public function testRawSqlInInsert(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->insert([
+                'name' => 'John Doe',
+                'email' => 'john@example.com',
+                'created_at' => GenerateQuery::raw('NOW()')
+            ])
+            ->build();
+
+        $this->assertEquals('INSERT INTO users SET name = ?, email = ?, created_at = NOW()', $q['sql']);
+        $this->assertEquals(['John Doe', 'john@example.com'], $q['params']);
+    }
+
+    /**
+     * Test raw SQL in WHERE condition
+     */
+    public function testRawSqlInWhere(): void
+    {
+        $q = GenerateQuery::table('products')
+            ->where([
+                'price' => ['>', GenerateQuery::raw('(SELECT AVG(price) FROM products)')]
+            ])
+            ->build();
+
+        $this->assertEquals(
+            'SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products)',
+            $q['sql']
+        );
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test buildSQL method (returns only SQL string)
+     */
+    public function testBuildSQL(): void
+    {
+        $sql = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->where(['status' => 'active'])
+            ->buildSQL();
+
+        $this->assertEquals('SELECT id, name FROM users WHERE status = ?', $sql);
+    }
+
+    /**
+     * Test getParams method
+     */
+    public function testGetParams(): void
+    {
+        $query = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->where(['status' => 'active', 'role' => 'admin']);
+
+        $params = $query->getParams();
+
+        $this->assertEquals(['active', 'admin'], $params);
+    }
+
+    /**
+     * Test get method (alias for build)
+     */
+    public function testGetAlias(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->get();
+
+        $this->assertArrayHasKey('sql', $q);
+        $this->assertArrayHasKey('params', $q);
+        $this->assertEquals('SELECT id, name FROM users', $q['sql']);
+    }
+
+    /**
+     * Test complex query with multiple conditions
+     */
+    public function testComplexQuery(): void
+    {
+        $q = GenerateQuery::table('orders')
+            ->alias('o')
+            ->select(['o.id', 'o.total', 'u.name', 'p.title'])
+            ->innerJoin('users', 'o.user_id = u.id', 'u')
+            ->leftJoin('products', 'o.product_id = p.id', 'p')
+            ->where([
+                'o.status' => 'completed',
+                'o.total' => ['>=', 100],
+                'o.created_at' => ['>=', '2024-01-01']
+            ])
+            ->groupBy('o.id')
+            ->orderBy('o.created_at DESC')
+            ->limit(50)
+            ->build();
+
+        $this->assertStringContainsString('SELECT o.id, o.total, u.name, p.title FROM orders AS o', $q['sql']);
+        $this->assertStringContainsString('INNER JOIN users AS u ON o.user_id = u.id', $q['sql']);
+        $this->assertStringContainsString('LEFT JOIN products AS p ON o.product_id = p.id', $q['sql']);
+        $this->assertStringContainsString('WHERE o.status = ? AND o.total >= ? AND o.created_at >= ?', $q['sql']);
+        $this->assertStringContainsString('GROUP BY o.id', $q['sql']);
+        $this->assertStringContainsString('ORDER BY o.created_at DESC', $q['sql']);
+        $this->assertStringContainsString('LIMIT 50', $q['sql']);
+        $this->assertEquals(['completed', 100, '2024-01-01'], $q['params']);
+    }
+
+    /**
+     * Test empty WHERE condition
+     */
+    public function testEmptyWhere(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->select(['id', 'name'])
+            ->where([])
+            ->build();
+
+        $this->assertEquals('SELECT id, name FROM users', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test multiple WHERE calls (should be combined with AND)
+     */
+    public function testMultipleWhereCalls(): void
+    {
+        $q = GenerateQuery::table('users')
+            ->where(['status' => 'active'])
+            ->where(['role' => 'admin'])
+            ->where(['verified' => true])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE status = ? AND role = ? AND verified = ?', $q['sql']);
+        $this->assertEquals(['active', 'admin', true], $q['params']);
+    }
+}

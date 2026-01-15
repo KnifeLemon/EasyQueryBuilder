@@ -1,0 +1,51 @@
+{
+    "name": "knifelemon/easy-query",
+    "description": "Easy-to-use PHP SQL query builder with fluent API. Designed for FlightPHP and works with any database connection.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "php",
+        "sql",
+        "query builder",
+        "fluent api",
+        "database",
+        "flightphp",
+        "pdo",
+        "mysqli"
+    ],
+    "authors": [
+        {
+            "name": "KnifeLemon",
+            "email": "knifelemon@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "phpstan/phpstan": "^1.0",
+        "tracy/tracy": "^2.11"
+    },
+    "suggest": {
+        "flightphp/core": "For seamless integration with FlightPHP framework and SimplePdo",
+        "tracy/tracy": "For development debugging and logging capabilities"
+    },
+    "autoload": {
+        "psr-4": {
+            "KnifeLemon\\EasyQuery\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "KnifeLemon\\EasyQuery\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage",
+        "phpstan": "phpstan analyse src --level=max"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
