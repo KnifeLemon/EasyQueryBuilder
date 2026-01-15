@@ -292,6 +292,86 @@ class Builder {
     }
 
     /**
+     * Clear WHERE conditions (allows query builder reuse)
+     * 
+     * @return self
+     */
+    public function clearWhere() : self {
+        $this->where = [];
+        $this->params = [];
+        return $this;
+    }
+
+    /**
+     * Clear SELECT columns (reset to default)
+     * 
+     * @return self
+     */
+    public function clearSelect() : self {
+        $this->select = '*';
+        return $this;
+    }
+
+    /**
+     * Clear JOIN clauses
+     * 
+     * @return self
+     */
+    public function clearJoin() : self {
+        $this->joins = [];
+        return $this;
+    }
+
+    /**
+     * Clear GROUP BY clause
+     * 
+     * @return self
+     */
+    public function clearGroupBy() : self {
+        $this->groupBy = '';
+        return $this;
+    }
+
+    /**
+     * Clear ORDER BY clause
+     * 
+     * @return self
+     */
+    public function clearOrderBy() : self {
+        $this->orderBy = '';
+        return $this;
+    }
+
+    /**
+     * Clear LIMIT and OFFSET
+     * 
+     * @return self
+     */
+    public function clearLimit() : self {
+        $this->limit = 0;
+        $this->offset = 0;
+        return $this;
+    }
+
+    /**
+     * Clear all query conditions (reset builder to initial state)
+     * 
+     * @return self
+     */
+    public function clearAll() : self {
+        $this->select = '*';
+        $this->joins = [];
+        $this->where = [];
+        $this->params = [];
+        $this->groupBy = '';
+        $this->orderBy = '';
+        $this->limit = 0;
+        $this->offset = 0;
+        $this->setData = [];
+        return $this;
+    }
+
+    /**
      * Build and return the SQL query string
      * 
      * @return string The generated SQL query

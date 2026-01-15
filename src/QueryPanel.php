@@ -21,7 +21,7 @@ class QueryPanel implements IBarPanel {
         $total = $metrics['total_queries'];
 
         return '
-        <span title="GenerateQuery">
+        <span title="EasyQuery">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect width="16" height="16" rx="2" fill="#4CAF50"/>
                 <path d="M3 5h10M3 8h10M3 11h10" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -35,14 +35,14 @@ class QueryPanel implements IBarPanel {
      */
     public function getPanel() : string {
         if (!QueryLogger::isEnabled()) {
-            return '<h1>GenerateQuery</h1><p>Logger not enabled</p>';
+            return '<h1>EasyQuery</h1><p>Logger not enabled</p>';
         }
 
         $queries = QueryLogger::getQueries();
         $metrics = QueryLogger::getMetrics();
 
         $html = $this->renderStyles();
-        $html .= '<h1>GenerateQuery - SQL Builder</h1>';
+        $html .= '<h1>EasyQuery - SQL Builder</h1>';
         $html .= '<div class="gq-panel">';
 
         // Summary Cards

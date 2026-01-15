@@ -14,14 +14,10 @@ composer require knifelemon/easy-query
 
 ```php
 use KnifeLemon\EasyQuery\Builder;
-use KnifeLemon\EasyQuery\PDOAdapter;
 
 // Create PDO connection
 $pdo = new PDO('mysql:host=localhost;dbname=myapp', 'user', 'pass');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-// Optional: Use adapter for cleaner code
-$db = new PDOAdapter($pdo);
 ```
 
 ### 2. Build your first query
@@ -31,25 +27,10 @@ $db = new PDOAdapter($pdo);
 $q = Builder::table('users')
     ->select(['id', 'name', 'email'])
     ->where(['status' => 'active'])
-    ->limit(10)
-    ->build();
-
 // Execute
 $stmt = $pdo->prepare($q['sql']);
 $stmt->execute($q['params']);
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-```
-
-### 3. With adapter (cleaner)
-
-```php
-$q = Builder::table('users')
-    ->select(['id', 'name', 'email'])
-    ->where(['status' => 'active'])
-    ->limit(10)
-    ->build();
-
-$users = $db->fetchAll($q);
 ```
 
 ## Common Patterns
@@ -65,8 +46,9 @@ $q = Builder::table('users')
     ])
     ->build();
 
-$db->execute($q);
-$userId = $db->lastInsertId();
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
+$userId = $pdo->lastInsertId();
 ```
 
 ### UPDATE
@@ -77,7 +59,9 @@ $q = Builder::table('users')
     ->where(['id' => 123])
     ->build();
 
-$affectedRows = $db->execute($q);
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
+$affectedRows = $stmt->rowCount();
 ```
 
 ### DELETE
@@ -88,7 +72,8 @@ $q = Builder::table('users')
     ->where(['id' => 123])
     ->build();
 
-$db->execute($q);
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
 ```
 
 ### JOIN
@@ -101,7 +86,9 @@ $q = Builder::table('posts')
     ->where(['p.status' => 'published'])
     ->build();
 
-$posts = $db->fetchAll($q);
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
+$posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ```
 
 ### COUNT
@@ -112,7 +99,10 @@ $q = Builder::table('users')
     ->where(['status' => 'active'])
     ->build();
 
-$count = $db->fetchColumn($q);
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
+$result = $stmt->fetch(PDO::FETCH_ASSOC);
+$count = $result['cnt'];
 ```
 
 ## FlightPHP Integration

@@ -2,16 +2,16 @@
 /**
  * Legacy PHP / PDO Integration Example
  * 
- * This example shows how to use GenerateQuery in legacy PHP applications
+ * This example shows how to use EasyQuery in legacy PHP applications
  * without any framework dependencies
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
 // Or for manual installation:
-// require_once __DIR__ . '/../src/GenerateQuery.php';
-// require_once __DIR__ . '/../src/GenerateQueryRaw.php';
+// require_once __DIR__ . '/../src/Builder.php';
+// require_once __DIR__ . '/../src/BuilderRaw.php';
 
-use KnifeLemon\GenerateQuery\GenerateQuery as GQuery;
+use KnifeLemon\EasyQuery\Builder;
 
 // Database configuration
 $config = [
@@ -39,7 +39,7 @@ try {
 // ============================================================================
 echo "<h2>Example 1: Simple SELECT</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->select(['id', 'name', 'email'])
     ->where(['status' => 'active'])
     ->orderBy('created_at DESC')
@@ -61,7 +61,7 @@ echo "<pre>" . print_r($users, true) . "</pre>\n";
 // ============================================================================
 echo "<h2>Example 2: SELECT with JOIN</h2>\n";
 
-$q = GQuery::table('posts')
+$q = Builder::table('posts')
     ->alias('p')
     ->select([
         'p.id',
@@ -92,12 +92,12 @@ echo "<p><strong>Results:</strong> " . count($posts) . " posts found</p>\n";
 // ============================================================================
 echo "<h2>Example 3: INSERT</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->insert([
         'name' => 'John Doe',
         'email' => 'john.doe@example.com',
         'status' => 'active',
-        'created_at' => GQuery::raw('NOW()')
+        'created_at' => Builder::raw('NOW()')
     ])
     ->build();
 
@@ -118,10 +118,10 @@ try {
 // ============================================================================
 echo "<h2>Example 4: UPDATE</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->update([
         'status' => 'inactive',
-        'updated_at' => GQuery::raw('NOW()')
+        'updated_at' => Builder::raw('NOW()')
     ])
     ->where([
         'id' => 123,
@@ -143,7 +143,7 @@ echo "<p><strong>Affected rows:</strong> {$affectedRows}</p>\n";
 // ============================================================================
 echo "<h2>Example 5: DELETE</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->delete()
     ->where([
         'id' => 999,
@@ -164,7 +164,7 @@ echo "<p><strong>Deleted rows:</strong> {$deletedRows}</p>\n";
 // ============================================================================
 echo "<h2>Example 6: COUNT</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->count()
     ->where(['status' => 'active'])
     ->build();
@@ -182,7 +182,7 @@ echo "<p><strong>Active users count:</strong> {$count}</p>\n";
 // ============================================================================
 echo "<h2>Example 7: Complex WHERE conditions</h2>\n";
 
-$q = GQuery::table('products')
+$q = Builder::table('products')
     ->alias('p')
     ->select(['p.id', 'p.name', 'p.price'])
     ->where([
@@ -214,9 +214,9 @@ try {
     $insertedIds = [];
     
     foreach ($usersData as $userData) {
-        $q = GQuery::table('users')
+        $q = Builder::table('users')
             ->insert(array_merge($userData, [
-                'created_at' => GQuery::raw('NOW()')
+                'created_at' => Builder::raw('NOW()')
             ]))
             ->build();
         
@@ -240,7 +240,7 @@ try {
 echo "<h2>Example 9: Dynamic query building</h2>\n";
 
 function searchUsers($pdo, $filters) {
-    $query = GQuery::table('users')->alias('u');
+    $query = Builder::table('users')->alias('u');
     
     // Start with select
     $query->select(['u.id', 'u.name', 'u.email', 'u.status']);
@@ -297,11 +297,11 @@ echo "<p><strong>Search results:</strong> " . count($results) . " users found</p
 // ============================================================================
 echo "<h2>Example 10: Using raw SQL expressions</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->update([
-        'points' => GQuery::raw('GREATEST(0, points - 100)'),
-        'last_login' => GQuery::raw('NOW()'),
-        'login_count' => GQuery::raw('login_count + 1')
+        'points' => Builder::raw('GREATEST(0, points - 100)'),
+        'last_login' => Builder::raw('NOW()'),
+        'login_count' => Builder::raw('login_count + 1')
     ])
     ->where(['id' => 123])
     ->build();
@@ -319,7 +319,7 @@ function paginate($pdo, $table, $page = 1, $perPage = 10, $conditions = []) {
     $offset = ($page - 1) * $perPage;
     
     // Get total count
-    $countQuery = GQuery::table($table)->count();
+    $countQuery = Builder::table($table)->count();
     if (!empty($conditions)) {
         $countQuery->where($conditions);
     }
@@ -330,7 +330,7 @@ function paginate($pdo, $table, $page = 1, $perPage = 10, $conditions = []) {
     $totalRecords = $stmt->fetchColumn();
     
     // Get paginated results
-    $dataQuery = GQuery::table($table);
+    $dataQuery = Builder::table($table);
     if (!empty($conditions)) {
         $dataQuery->where($conditions);
     }

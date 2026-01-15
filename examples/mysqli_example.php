@@ -2,12 +2,12 @@
 /**
  * MySQLi Integration Example
  * 
- * This example shows how to use GenerateQuery with MySQLi
+ * This example shows how to use EasyQuery with MySQLi
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require 'vendor/autoload.php';
 
-use KnifeLemon\GenerateQuery\GenerateQuery as GQuery;
+use KnifeLemon\EasyQuery\Builder;
 
 // Database configuration
 $config = [
@@ -38,7 +38,7 @@ $mysqli->set_charset('utf8mb4');
 // ============================================================================
 echo "<h2>Example 1: SELECT with MySQLi</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->select(['id', 'name', 'email', 'status'])
     ->where(['status' => 'active'])
     ->orderBy('id DESC')
@@ -78,12 +78,12 @@ if ($stmt) {
 // ============================================================================
 echo "<h2>Example 2: INSERT with MySQLi</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->insert([
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
         'status' => 'active',
-        'created_at' => GQuery::raw('NOW()')
+        'created_at' => Builder::raw('NOW()')
     ])
     ->build();
 
@@ -112,10 +112,10 @@ if ($stmt) {
 // ============================================================================
 echo "<h2>Example 3: UPDATE with MySQLi</h2>\n";
 
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->update([
         'status' => 'inactive',
-        'updated_at' => GQuery::raw('NOW()')
+        'updated_at' => Builder::raw('NOW()')
     ])
     ->where(['id' => 123])
     ->build();
@@ -199,7 +199,7 @@ function fetchOne($mysqli, $q) {
 }
 
 // Test helper functions
-$q = GQuery::table('users')
+$q = Builder::table('users')
     ->select(['id', 'name', 'email'])
     ->where(['status' => 'active'])
     ->limit(5)
@@ -221,7 +221,7 @@ $mysqli->begin_transaction();
 
 try {
     // Insert user
-    $q1 = GQuery::table('users')
+    $q1 = Builder::table('users')
         ->insert([
             'name' => 'Transaction User',
             'email' => 'transaction@example.com',
@@ -234,11 +234,11 @@ try {
     $stmt1->close();
     
     // Insert related record
-    $q2 = GQuery::table('user_profiles')
+    $q2 = Builder::table('user_profiles')
         ->insert([
             'user_id' => $userId,
             'bio' => 'Test bio',
-            'created_at' => GQuery::raw('NOW()')
+            'created_at' => Builder::raw('NOW()')
         ])
         ->build();
     
@@ -260,7 +260,7 @@ try {
 // ============================================================================
 echo "<h2>Example 6: Complex query with JOIN</h2>\n";
 
-$q = GQuery::table('orders')
+$q = Builder::table('orders')
     ->alias('o')
     ->select([
         'o.id',

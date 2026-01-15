@@ -55,6 +55,95 @@ $stmt->execute($q['params']);
 $users = $stmt->fetchAll();
 ```
 
+## Understanding build() Return Value
+
+The `build()` method returns an array with two keys: `sql` and `params`. This separation is fundamental to how EasyQuery keeps your database safe.
+
+### What You Get
+
+```php
+$q = Builder::table('users')
+    ->where(['email' => 'user@example.com'])
+    ->build();
+
+// Returns:
+// [
+//     'sql' => 'SELECT * FROM users WHERE email = ?',
+//     'params' => ['user@example.com']
+// ]
+```
+
+### Why Split SQL and Parameters?
+
+EasyQuery uses **prepared statements** - a security feature that prevents SQL injection attacks. Instead of inserting values directly into SQL (which is dangerous), we:
+
+1. **Generate SQL with placeholders (`?`)** - The SQL structure is defined first
+2. **Keep values separate** - User data stays in the `params` array
+3. **Let the database combine them safely** - Your database driver (PDO, MySQLi) securely binds parameters
+
+### How to Use
+
+The most common pattern is:
+
+```php
+// 1. Build your query
+$q = Builder::table('users')
+    ->where(['status' => 'active'])
+    ->limit(10)
+    ->build();
+
+// 2. Prepare the SQL statement
+$stmt = $pdo->prepare($q['sql']);
+
+// 3. Execute with parameters
+$stmt->execute($q['params']);
+
+// 4. Get results
+$users = $stmt->fetchAll();
+```
+
+### Why This Matters
+
+**❌ Dangerous (Never do this):**
+```php
+// Direct concatenation = SQL injection vulnerability!
+$email = $_POST['email'];
+$sql = "SELECT * FROM users WHERE email = '$email'";
+// If $email is: ' OR '1'='1
+// SQL becomes: SELECT * FROM users WHERE email = '' OR '1'='1'
+// This returns ALL users!
+```
+
+**✅ Safe (EasyQuery way):**
+```php
+$email = $_POST['email'];
+$q = Builder::table('users')
+    ->where(['email' => $email])
+    ->build();
+// SQL: SELECT * FROM users WHERE email = ?
+// Params: ['user input']
+// The database treats the input as data, not code
+```
+
+### Working with Different Frameworks
+
+EasyQuery's separation of SQL and parameters makes it compatible with any database library:
+
+```php
+// PDO
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
+
+// MySQLi
+$stmt = $mysqli->prepare($q['sql']);
+$stmt->execute($q['params']);
+
+// FlightPHP SimplePdo
+$users = Flight::db()->fetchAll($q['sql'], $q['params']);
+```
+
+This universal approach means you can use EasyQuery with any framework or custom database setup.
+
 ## Usage Examples
 
 ### SELECT Queries
@@ -82,7 +171,10 @@ $q = Builder::table('users')
     ->orderBy('u.created_at DESC')
     ->limit(10)
     ->build();
-```
+
+// Result:
+// sql: "SELECT u.id, u.name FROM users AS u WHERE u.status = ? ORDER BY u.created_at DESC LIMIT 10"
+// params: ['active']
 
 #### SELECT with JOIN
 
@@ -94,7 +186,10 @@ $q = Builder::table('users')
     ->where(['u.status' => 'active'])
     ->orderBy('p.published_at DESC')
     ->build();
-```
+
+// Result:
+// sql: "SELECT u.id, u.name, p.title, p.content FROM users AS u INNER JOIN posts AS p ON u.id = p.user_id WHERE u.status = ? ORDER BY p.published_at DESC"
+// params: ['active']
 
 ### WHERE Conditions
 
@@ -117,7 +212,10 @@ $q = Builder::table('users')
         'name' => ['LIKE', '%john%']
     ])
     ->build();
-```
+
+// Result:
+// sql: "SELECT * FROM users WHERE age >= ? AND score < ? AND name LIKE ?"
+// params: [18, 100, '%john%']
 
 #### IN Operator
 
@@ -127,8 +225,10 @@ $q = Builder::table('users')
         'id' => ['IN', [1, 2, 3, 4, 5]]
     ])
     ->build();
-// WHERE id IN (?, ?, ?, ?, ?)
-```
+
+// Result:
+// sql: "SELECT * FROM users WHERE id IN (?, ?, ?, ?, ?)"
+// params: [1, 2, 3, 4, 5]
 
 #### BETWEEN Operator
 
@@ -138,18 +238,35 @@ $q = Builder::table('products')
         'price' => ['BETWEEN', [100, 500]]
     ])
     ->build();
-// WHERE price BETWEEN ? AND ?
-```
+
+// Result:
+// sql: "SELECT * FROM products WHERE price BETWEEN ? AND ?"
+// params: [100, 500]
 
 #### OR Conditions
 
+Use `orWhere()` to add OR grouped conditions. Conditions within the same `orWhere()` call are joined with OR, and each group is added to the main query with AND.
+
 ```php
+// Simple OR condition
 $q = Builder::table('users')
-    ->where(['role' => 'admin'])
-    ->orWhere(['role' => 'moderator'])
+    ->where(['status' => 'active'])
+    ->orWhere(['role' => 'admin'])
     ->build();
-// WHERE role = ? OR (role = ?)
-```
+// WHERE status = ? AND (role = ?)
+// params: ['active', 'admin']
+
+// Multiple conditions in OR group
+$q = Builder::table('users')
+    ->where(['status' => 'active'])
+    ->orWhere([
+        'role' => 'admin',
+        'role' => 'moderator',
+        'permissions' => ['LIKE', '%manage%']
+    ])
+    ->build();
+// WHERE status = ? AND (role = ? OR role = ? OR permissions LIKE ?)
+// params: ['active', 'admin', 'moderator', '%manage%']
 
 ### INSERT Queries
 
@@ -234,13 +351,17 @@ $q = Builder::table('products')
         'price' => ['>', Builder::raw('(SELECT AVG(price) FROM products)')]
     ])
     ->build();
+
+// Result:
+// sql: "SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products)"
+// params: []
 ```
 
 ## Framework Integration
 
 ### FlightPHP Integration
 
-GenerateQuery works with [FlightPHP](https://flightphp.com/)'s SimplePdo by generating SQL and parameters that you pass directly to SimplePdo methods.
+EasyQuery works with [FlightPHP](https://flightphp.com/)'s SimplePdo by generating SQL and parameters that you pass directly to SimplePdo methods.
 
 ```php
 use KnifeLemon\EasyQuery\Builder;
@@ -427,6 +548,27 @@ Set the query action to UPDATE with data.
 #### `delete(): self`
 Set the query action to DELETE.
 
+#### `clearWhere(): self`
+Clear WHERE conditions and parameters (allows query builder reuse).
+
+#### `clearSelect(): self`
+Clear SELECT columns (reset to default '*').
+
+#### `clearJoin(): self`
+Clear all JOIN clauses.
+
+#### `clearGroupBy(): self`
+Clear GROUP BY clause.
+
+#### `clearOrderBy(): self`
+Clear ORDER BY clause.
+
+#### `clearLimit(): self`
+Clear LIMIT and OFFSET.
+
+#### `clearAll(): self`
+Clear all query conditions (reset builder to initial state).
+
 #### `build(): array`
 Build and return the query as `['sql' => string, 'params' => array]`.
 
@@ -490,6 +632,117 @@ $query->orderBy('p.created_at DESC')->limit(20);
 $result = $query->build();
 ```
 
+### Query Builder Reuse
+
+The query builder can be reused by clearing specific conditions or resetting entirely. This is useful when you need to execute similar queries with different parameters.
+
+```php
+// Create a base query
+$baseQuery = Builder::table('users')
+    ->select(['id', 'name', 'email'])
+    ->where(['status' => 'active'])
+    ->orderBy('created_at DESC');
+
+// First query: Active users in the last 30 days
+$q1 = $baseQuery
+    ->where(['created_at' => ['>=', date('Y-m-d', strtotime('-30 days'))]])
+    ->limit(10)
+    ->build();
+
+$recentUsers = executeQuery($q1);
+
+// Clear WHERE to reuse the builder
+$baseQuery->clearWhere();
+
+// Second query: All active premium users
+$q2 = $baseQuery
+    ->where(['status' => 'active', 'plan' => 'premium'])
+    ->limit(20)
+    ->build();
+
+$premiumUsers = executeQuery($q2);
+
+// Clear specific parts
+$baseQuery
+    ->clearSelect()
+    ->clearOrderBy()
+    ->clearLimit();
+
+// Third query: Count active users
+$q3 = $baseQuery
+    ->count()
+    ->where(['status' => 'active'])
+    ->build();
+
+$activeCount = executeQuery($q3);
+```
+
+#### Clear Methods Usage
+
+```php
+// Clear only WHERE conditions
+$query->clearWhere();
+
+// Clear only SELECT columns
+$query->clearSelect();
+
+// Clear only JOINs
+$query->clearJoin();
+
+// Clear only ORDER BY
+$query->clearOrderBy();
+
+// Clear only GROUP BY
+$query->clearGroupBy();
+
+// Clear only LIMIT and OFFSET
+$query->clearLimit();
+
+// Clear everything and start fresh
+$query->clearAll();
+```
+
+#### Practical Example: Pagination with Reuse
+
+```php
+// Base query for user list
+$usersQuery = Builder::table('users')
+    ->select(['id', 'name', 'email', 'created_at'])
+    ->where(['status' => 'active'])
+    ->orderBy('created_at DESC');
+
+// Get total count
+$countQuery = clone $usersQuery;
+$countResult = $countQuery
+    ->clearSelect()
+    ->count()
+    ->build();
+
+$totalUsers = executeQuery($countResult)[0]['cnt'];
+
+// Get paginated results
+$page = 1;
+$perPage = 20;
+$offset = ($page - 1) * $perPage;
+
+$listResult = $usersQuery
+    ->limit($perPage, $offset)
+    ->build();
+
+$users = executeQuery($listResult);
+
+// Next page - reuse the same query
+$usersQuery->clearLimit();
+$page = 2;
+$offset = ($page - 1) * $perPage;
+
+$nextPageResult = $usersQuery
+    ->limit($perPage, $offset)
+    ->build();
+
+$nextPageUsers = executeQuery($nextPageResult);
+```
+
 ### Batch Insert Helper
 
 ```php
@@ -544,7 +797,7 @@ $q = Builder::table('users')
 
 ## Debugging with Tracy
 
-GenerateQuery provides automatic Tracy Debugger integration with a beautiful custom panel. **No setup required!** Just install Tracy and use GenerateQuery - the debug panel will automatically appear.
+EasyQuery provides automatic Tracy Debugger integration with a beautiful custom panel. **No setup required!** Just install Tracy and use EasyQuery - the debug panel will automatically appear.
 
 ### Automatic Setup
 
@@ -555,7 +808,7 @@ use KnifeLemon\EasyQuery\Builder;
 // Enable Tracy (development only)
 Debugger::enable();
 
-// That's it! Just use GenerateQuery normally
+// That's it! Just use EasyQuery normally
 $q = Builder::table('users')
     ->select(['id', 'name', 'email'])
     ->where(['status' => 'active'])
@@ -590,7 +843,7 @@ The custom Tracy panel shows:
 composer require tracy/tracy
 ```
 
-If Tracy is not installed, GenerateQuery works normally without any debug output.
+If Tracy is not installed, EasyQuery works normally without any debug output.
 
 ## Testing
 

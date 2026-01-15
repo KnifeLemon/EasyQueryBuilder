@@ -2,16 +2,16 @@
 /**
  * FlightPHP Integration Example
  * 
- * This example demonstrates how to use GenerateQuery with the FlightPHP framework
+ * This example demonstrates how to use EasyQuery with the FlightPHP framework
  * 
  * Installation:
  * composer require flightphp/core
- * composer require knifelemon/generate-query
+ * composer require knifelemon/easy-query
  */
 
 require 'vendor/autoload.php';
 
-use KnifeLemon\GenerateQuery\GenerateQuery as GQuery;
+use KnifeLemon\EasyQuery\Builder;
 
 // Configure database connection using FlightPHP's SimplePdo
 Flight::register('db', \flight\database\SimplePdo::class, [
@@ -30,7 +30,7 @@ Flight::register('db', \flight\database\SimplePdo::class, [
  * GET /users - List all active users
  */
 Flight::route('GET /users', function() {
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->select(['id', 'name', 'email', 'created_at'])
         ->where(['status' => 'active'])
         ->orderBy('created_at DESC')
@@ -54,7 +54,7 @@ Flight::route('GET /users', function() {
  * GET /users/@id - Get single user by ID
  */
 Flight::route('GET /users/@id', function($id) {
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->select(['id', 'name', 'email', 'status', 'created_at'])
         ->where(['id' => $id])
         ->build();
@@ -82,12 +82,12 @@ Flight::route('POST /users', function() {
         return;
     }
     
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->insert([
             'name' => $data->name,
             'email' => $data->email,
             'status' => $data->status ?? 'active',
-            'created_at' => GQuery::raw('NOW()')
+            'created_at' => Builder::raw('NOW()')
         ])
         ->build();
     
@@ -125,9 +125,9 @@ Flight::route('PUT /users/@id', function($id) {
         return;
     }
     
-    $updateData['updated_at'] = GQuery::raw('NOW()');
+    $updateData['updated_at'] = Builder::raw('NOW()');
     
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->update($updateData)
         ->where(['id' => $id])
         ->build();
@@ -158,7 +158,7 @@ Flight::route('PUT /users/@id', function($id) {
  * DELETE /users/@id - Delete user
  */
 Flight::route('DELETE /users/@id', function($id) {
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->delete()
         ->where(['id' => $id])
         ->build();
@@ -196,7 +196,7 @@ Flight::route('GET /users/search', function() {
         return;
     }
     
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->select(['id', 'name', 'email'])
         ->where([
             'status' => 'active',
@@ -220,7 +220,7 @@ Flight::route('GET /users/search', function() {
  * GET /posts/with-authors - Get posts with user information (JOIN example)
  */
 Flight::route('GET /posts/with-authors', function() {
-    $q = GQuery::table('posts')
+    $q = Builder::table('posts')
         ->alias('p')
         ->select([
             'p.id',
@@ -254,7 +254,7 @@ Flight::route('GET /posts/with-authors', function() {
  */
 Flight::route('GET /stats/users', function() {
     // Count active users using fetchField (returns single value)
-    $q = GQuery::table('users')
+    $q = Builder::table('users')
         ->count()
         ->where(['status' => 'active'])
         ->build();
@@ -262,7 +262,7 @@ Flight::route('GET /stats/users', function() {
     $activeCount = Flight::db()->fetchField($q['sql'], $q['params']);
     
     // Count total users
-    $q2 = GQuery::table('users')
+    $q2 = Builder::table('users')
         ->count()
         ->build();
     
@@ -295,12 +295,12 @@ Flight::route('POST /users/batch', function() {
             $ids = [];
             
             foreach ($users as $userData) {
-                $q = GQuery::table('users')
+                $q = Builder::table('users')
                     ->insert([
                         'name' => $userData->name ?? '',
                         'email' => $userData->email ?? '',
                         'status' => 'active',
-                        'created_at' => GQuery::raw('NOW()')
+                        'created_at' => Builder::raw('NOW()')
                     ])
                     ->build();
                 

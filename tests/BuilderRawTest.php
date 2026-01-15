@@ -1,19 +1,19 @@
 <?php
-namespace KnifeLemon\GenerateQuery\Tests;
+namespace KnifeLemon\EasyQuery\Tests;
 
-use KnifeLemon\GenerateQuery\GenerateQueryRaw;
+use KnifeLemon\EasyQuery\BuilderRaw;
 use PHPUnit\Framework\TestCase;
 
-class GenerateQueryRawTest extends TestCase
+class BuilderRawTest extends TestCase
 {
     /**
      * Test creating a raw SQL expression
      */
     public function testCreateRawExpression(): void
     {
-        $raw = new GenerateQueryRaw('NOW()');
+        $raw = new BuilderRaw('NOW()');
         
-        $this->assertInstanceOf(GenerateQueryRaw::class, $raw);
+        $this->assertInstanceOf(BuilderRaw::class, $raw);
         $this->assertEquals('NOW()', $raw->value);
     }
 
@@ -22,7 +22,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testRawWithFunction(): void
     {
-        $raw = new GenerateQueryRaw('UPPER(name)');
+        $raw = new BuilderRaw('UPPER(name)');
         
         $this->assertEquals('UPPER(name)', $raw->value);
     }
@@ -32,7 +32,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testRawWithArithmetic(): void
     {
-        $raw = new GenerateQueryRaw('price * 1.1');
+        $raw = new BuilderRaw('price * 1.1');
         
         $this->assertEquals('price * 1.1', $raw->value);
     }
@@ -42,7 +42,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testRawWithSubquery(): void
     {
-        $raw = new GenerateQueryRaw('(SELECT AVG(price) FROM products)');
+        $raw = new BuilderRaw('(SELECT AVG(price) FROM products)');
         
         $this->assertEquals('(SELECT AVG(price) FROM products)', $raw->value);
     }
@@ -52,7 +52,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testRawWithCaseStatement(): void
     {
-        $raw = new GenerateQueryRaw("CASE WHEN status = 'active' THEN 1 ELSE 0 END");
+        $raw = new BuilderRaw("CASE WHEN status = 'active' THEN 1 ELSE 0 END");
         
         $this->assertEquals("CASE WHEN status = 'active' THEN 1 ELSE 0 END", $raw->value);
     }
@@ -62,7 +62,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testValuePropertyIsAccessible(): void
     {
-        $raw = new GenerateQueryRaw('COUNT(*)');
+        $raw = new BuilderRaw('COUNT(*)');
         
         $this->assertObjectHasProperty('value', $raw);
         $this->assertEquals('COUNT(*)', $raw->value);
@@ -73,7 +73,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testRawWithMultipleExpressions(): void
     {
-        $raw = new GenerateQueryRaw('GREATEST(0, points - 100)');
+        $raw = new BuilderRaw('GREATEST(0, points - 100)');
         
         $this->assertEquals('GREATEST(0, points - 100)', $raw->value);
     }
@@ -83,7 +83,7 @@ class GenerateQueryRawTest extends TestCase
      */
     public function testRawWithComplexExpression(): void
     {
-        $raw = new GenerateQueryRaw('DATE_FORMAT(created_at, "%Y-%m-%d")');
+        $raw = new BuilderRaw('DATE_FORMAT(created_at, "%Y-%m-%d")');
         
         $this->assertEquals('DATE_FORMAT(created_at, "%Y-%m-%d")', $raw->value);
     }

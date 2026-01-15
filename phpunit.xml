@@ -11,7 +11,7 @@
          failOnWarning="true"
          failOnRisky="true">
     <testsuites>
-        <testsuite name="GenerateQuery Test Suite">
+        <testsuite name="EasyQuery Test Suite">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

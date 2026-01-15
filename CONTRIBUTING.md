@@ -1,6 +1,6 @@
-# Contributing to GenerateQuery
+# Contributing to EasyQuery
 
-Thank you for your interest in contributing to GenerateQuery! We welcome contributions from the community.
+Thank you for your interest in contributing to EasyQuery! We welcome contributions from the community.
 
 ## How to Contribute
 
@@ -57,8 +57,8 @@ We welcome suggestions for new features! Please open an issue with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/knifelemon/GenerateQuery.git
-cd GenerateQuery
+git clone https://github.com/knifelemon/EasyQueryBuilder.git
+cd EasyQueryBuilder
 
 # Install dependencies
 composer install
@@ -74,4 +74,4 @@ composer phpstan
 
 Feel free to open an issue for any questions about contributing!
 
-Thank you for contributing to GenerateQuery! 🎉
+Thank you for contributing to EasyQuery! 🎉

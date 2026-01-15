@@ -10,7 +10,7 @@ We release security updates for the following versions:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in GenerateQuery, please send an email to **knifelemon@gmail.com**.
+If you discover a security vulnerability in EasyQuery, please send an email to **knifelemon@gmail.com**.
 
 Please do NOT create a public GitHub issue for security vulnerabilities.
 
@@ -33,7 +33,7 @@ When reporting a vulnerability, please include:
 
 ## Security Best Practices
 
-When using GenerateQuery:
+When using EasyQuery:
 
 ### ✅ DO:
 - Always use parameter binding (automatically handled by the library)
@@ -78,4 +78,4 @@ $q = GQuery::table('users')
 - Always validate user input before using in queries
 - Keep PHP and database drivers updated for security patches
 
-Thank you for helping keep GenerateQuery secure!
+Thank you for helping keep EasyQuery secure!

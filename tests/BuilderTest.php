@@ -1,18 +1,18 @@
 <?php
-namespace KnifeLemon\GenerateQuery\Tests;
+namespace KnifeLemon\EasyQuery\Tests;
 
-use KnifeLemon\GenerateQuery\GenerateQuery;
-use KnifeLemon\GenerateQuery\GenerateQueryRaw;
+use KnifeLemon\EasyQuery\Builder;
+use KnifeLemon\EasyQuery\BuilderRaw;
 use PHPUnit\Framework\TestCase;
 
-class GenerateQueryTest extends TestCase
+class BuilderTest extends TestCase
 {
     /**
      * Test basic SELECT query
      */
     public function testBasicSelect(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name', 'email'])
             ->build();
 
@@ -25,7 +25,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testSelectWithWhere(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name'])
             ->where(['status' => 'active', 'role' => 'admin'])
             ->build();
@@ -39,7 +39,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testSelectWithAlias(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->alias('u')
             ->select(['u.id', 'u.name'])
             ->where(['u.status' => 'active'])
@@ -54,7 +54,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testSelectWithInnerJoin(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->alias('u')
             ->select(['u.id', 'u.name', 'p.title'])
             ->innerJoin('posts', 'u.id = p.user_id', 'p')
@@ -72,7 +72,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testSelectWithLeftJoin(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->alias('u')
             ->select(['u.id', 'u.name', 'p.title'])
             ->leftJoin('posts', 'u.id = p.user_id', 'p')
@@ -90,7 +90,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testWhereWithOperators(): void
     {
-        $q = GenerateQuery::table('products')
+        $q = Builder::table('products')
             ->where([
                 'price' => ['>=', 100],
                 'stock' => ['<', 50],
@@ -110,7 +110,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testWhereWithIn(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->where(['id' => ['IN', [1, 2, 3, 4, 5]]])
             ->build();
 
@@ -123,7 +123,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testWhereWithBetween(): void
     {
-        $q = GenerateQuery::table('products')
+        $q = Builder::table('products')
             ->where(['price' => ['BETWEEN', [100, 500]]])
             ->build();
 
@@ -136,7 +136,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testOrWhere(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->where(['role' => 'admin'])
             ->orWhere(['role' => 'moderator'])
             ->build();
@@ -150,7 +150,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testOrWhereMultipleConditions(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->where(['status' => 'active'])
             ->orWhere(['role' => 'admin', 'role2' => 'moderator'])
             ->build();
@@ -164,7 +164,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testOrderBy(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name'])
             ->orderBy('created_at DESC')
             ->build();
@@ -178,7 +178,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testGroupBy(): void
     {
-        $q = GenerateQuery::table('orders')
+        $q = Builder::table('orders')
             ->select(['user_id', 'COUNT(*) as total'])
             ->groupBy('user_id')
             ->build();
@@ -192,7 +192,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testLimit(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name'])
             ->limit(10)
             ->build();
@@ -206,7 +206,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testLimitWithOffset(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name'])
             ->limit(10, 20)
             ->build();
@@ -220,7 +220,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testCount(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->count()
             ->where(['status' => 'active'])
             ->build();
@@ -234,7 +234,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testCountWithColumn(): void
     {
-        $q = GenerateQuery::table('orders')
+        $q = Builder::table('orders')
             ->count('DISTINCT user_id')
             ->build();
 
@@ -247,7 +247,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testInsert(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->insert([
                 'name' => 'John Doe',
                 'email' => 'john@example.com',
@@ -264,7 +264,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testUpdate(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->update([
                 'status' => 'inactive',
                 'updated_at' => '2026-01-15 10:00:00'
@@ -284,7 +284,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testDelete(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->delete()
             ->where(['id' => 123])
             ->build();
@@ -298,10 +298,10 @@ class GenerateQueryTest extends TestCase
      */
     public function testRawSqlInUpdate(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->update([
-                'points' => GenerateQuery::raw('points + 100'),
-                'updated_at' => GenerateQuery::raw('NOW()')
+                'points' => Builder::raw('points + 100'),
+                'updated_at' => Builder::raw('NOW()')
             ])
             ->where(['id' => 123])
             ->build();
@@ -318,11 +318,11 @@ class GenerateQueryTest extends TestCase
      */
     public function testRawSqlInInsert(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->insert([
                 'name' => 'John Doe',
                 'email' => 'john@example.com',
-                'created_at' => GenerateQuery::raw('NOW()')
+                'created_at' => Builder::raw('NOW()')
             ])
             ->build();
 
@@ -335,9 +335,9 @@ class GenerateQueryTest extends TestCase
      */
     public function testRawSqlInWhere(): void
     {
-        $q = GenerateQuery::table('products')
+        $q = Builder::table('products')
             ->where([
-                'price' => ['>', GenerateQuery::raw('(SELECT AVG(price) FROM products)')]
+                'price' => ['>', Builder::raw('(SELECT AVG(price) FROM products)')]
             ])
             ->build();
 
@@ -353,7 +353,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testBuildSQL(): void
     {
-        $sql = GenerateQuery::table('users')
+        $sql = Builder::table('users')
             ->select(['id', 'name'])
             ->where(['status' => 'active'])
             ->buildSQL();
@@ -366,7 +366,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testGetParams(): void
     {
-        $query = GenerateQuery::table('users')
+        $query = Builder::table('users')
             ->select(['id', 'name'])
             ->where(['status' => 'active', 'role' => 'admin']);
 
@@ -380,7 +380,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testGetAlias(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name'])
             ->get();
 
@@ -394,7 +394,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testComplexQuery(): void
     {
-        $q = GenerateQuery::table('orders')
+        $q = Builder::table('orders')
             ->alias('o')
             ->select(['o.id', 'o.total', 'u.name', 'p.title'])
             ->innerJoin('users', 'o.user_id = u.id', 'u')
@@ -424,7 +424,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testEmptyWhere(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->select(['id', 'name'])
             ->where([])
             ->build();
@@ -438,7 +438,7 @@ class GenerateQueryTest extends TestCase
      */
     public function testMultipleWhereCalls(): void
     {
-        $q = GenerateQuery::table('users')
+        $q = Builder::table('users')
             ->where(['status' => 'active'])
             ->where(['role' => 'admin'])
             ->where(['verified' => true])
@@ -446,5 +446,167 @@ class GenerateQueryTest extends TestCase
 
         $this->assertEquals('SELECT * FROM users WHERE status = ? AND role = ? AND verified = ?', $q['sql']);
         $this->assertEquals(['active', 'admin', true], $q['params']);
+    }
+
+    /**
+     * Test clearWhere() method
+     */
+    public function testClearWhere(): void
+    {
+        $query = Builder::table('users')
+            ->select(['id', 'name'])
+            ->where(['status' => 'active', 'role' => 'admin']);
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('WHERE status = ? AND role = ?', $q1['sql']);
+        $this->assertEquals(['active', 'admin'], $q1['params']);
+
+        // Clear WHERE and build again
+        $query->clearWhere();
+        $q2 = $query->build();
+        $this->assertEquals('SELECT id, name FROM users', $q2['sql']);
+        $this->assertEmpty($q2['params']);
+    }
+
+    /**
+     * Test clearSelect() method
+     */
+    public function testClearSelect(): void
+    {
+        $query = Builder::table('users')
+            ->select(['id', 'name', 'email']);
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('SELECT id, name, email', $q1['sql']);
+
+        // Clear SELECT and build again (should default to *)
+        $query->clearSelect();
+        $q2 = $query->build();
+        $this->assertStringContainsString('SELECT * FROM users', $q2['sql']);
+    }
+
+    /**
+     * Test clearJoin() method
+     */
+    public function testClearJoin(): void
+    {
+        $query = Builder::table('users')
+            ->alias('u')
+            ->innerJoin('posts', 'u.id = p.user_id', 'p');
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('INNER JOIN posts', $q1['sql']);
+
+        // Clear JOINs and build again
+        $query->clearJoin();
+        $q2 = $query->build();
+        $this->assertStringNotContainsString('INNER JOIN', $q2['sql']);
+    }
+
+    /**
+     * Test clearOrderBy() method
+     */
+    public function testClearOrderBy(): void
+    {
+        $query = Builder::table('users')
+            ->orderBy('created_at DESC');
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('ORDER BY created_at DESC', $q1['sql']);
+
+        // Clear ORDER BY and build again
+        $query->clearOrderBy();
+        $q2 = $query->build();
+        $this->assertStringNotContainsString('ORDER BY', $q2['sql']);
+    }
+
+    /**
+     * Test clearGroupBy() method
+     */
+    public function testClearGroupBy(): void
+    {
+        $query = Builder::table('orders')
+            ->select(['user_id', 'COUNT(*) as total'])
+            ->groupBy('user_id');
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('GROUP BY user_id', $q1['sql']);
+
+        // Clear GROUP BY and build again
+        $query->clearGroupBy();
+        $q2 = $query->build();
+        $this->assertStringNotContainsString('GROUP BY', $q2['sql']);
+    }
+
+    /**
+     * Test clearLimit() method
+     */
+    public function testClearLimit(): void
+    {
+        $query = Builder::table('users')
+            ->limit(10, 20);
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('LIMIT 10', $q1['sql']);
+        $this->assertStringContainsString('OFFSET 20', $q1['sql']);
+
+        // Clear LIMIT and build again
+        $query->clearLimit();
+        $q2 = $query->build();
+        $this->assertStringNotContainsString('LIMIT', $q2['sql']);
+        $this->assertStringNotContainsString('OFFSET', $q2['sql']);
+    }
+
+    /**
+     * Test clearAll() method
+     */
+    public function testClearAll(): void
+    {
+        $query = Builder::table('users')
+            ->alias('u')
+            ->select(['u.id', 'u.name'])
+            ->innerJoin('posts', 'u.id = p.user_id', 'p')
+            ->where(['u.status' => 'active'])
+            ->groupBy('u.id')
+            ->orderBy('u.created_at DESC')
+            ->limit(10);
+
+        $q1 = $query->build();
+        $this->assertStringContainsString('WHERE', $q1['sql']);
+        $this->assertStringContainsString('JOIN', $q1['sql']);
+        $this->assertStringContainsString('ORDER BY', $q1['sql']);
+
+        // Clear everything
+        $query->clearAll();
+        $q2 = $query->build();
+        
+        // Should be basic SELECT * FROM users AS u
+        $this->assertEquals('SELECT * FROM users AS u', $q2['sql']);
+        $this->assertEmpty($q2['params']);
+    }
+
+    /**
+     * Test query builder reuse with clearWhere()
+     */
+    public function testQueryBuilderReuse(): void
+    {
+        $baseQuery = Builder::table('users')
+            ->select(['id', 'name', 'email'])
+            ->where(['status' => 'active']);
+
+        // First query
+        $q1 = $baseQuery->build();
+        $this->assertStringContainsString('WHERE status = ?', $q1['sql']);
+        $this->assertEquals(['active'], $q1['params']);
+
+        // Clear WHERE and add new conditions
+        $baseQuery->clearWhere();
+        $q2 = $baseQuery
+            ->where(['role' => 'admin', 'verified' => true])
+            ->build();
+        
+        $this->assertStringContainsString('WHERE role = ? AND verified = ?', $q2['sql']);
+        $this->assertEquals(['admin', true], $q2['params']);
+        $this->assertStringNotContainsString('status', $q2['sql']);
     }
 }
