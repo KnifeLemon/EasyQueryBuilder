@@ -10,14 +10,14 @@ A lightweight, fluent PHP SQL query builder that generates SQL and parameters. D
 
 ## Features
 
-- 🚀 **Fluent API** - Chain methods for readable query construction
-- 💉 **SQL Injection Protection** - Automatic parameter binding with prepared statements
-- 🔧 **Raw SQL Support** - Insert raw SQL expressions with `raw()`
-- 🔄 **Multiple Query Types** - SELECT, INSERT, UPDATE, DELETE, COUNT
-- 🔗 **JOIN Support** - INNER, LEFT, RIGHT joins with aliases
-- 📊 **Advanced Conditions** - LIKE, IN, BETWEEN, comparison operators
-- 🎯 **Database Agnostic** - Returns SQL + params, use with any DB connection
-- 🪶 **Lightweight** - Minimal footprint with zero required dependencies
+- ?? **Fluent API** - Chain methods for readable query construction
+- ?�� **SQL Injection Protection** - Automatic parameter binding with prepared statements
+- ?�� **Raw SQL Support** - Insert raw SQL expressions with `raw()`
+- ?�� **Multiple Query Types** - SELECT, INSERT, UPDATE, DELETE, COUNT
+- ?�� **JOIN Support** - INNER, LEFT, RIGHT joins with aliases
+- ?�� **Advanced Conditions** - LIKE, IN, BETWEEN, comparison operators
+- ?�� **Database Agnostic** - Returns SQL + params, use with any DB connection
+- ?�� **Lightweight** - Minimal footprint with zero required dependencies
 
 ## Installation
 
@@ -104,7 +104,7 @@ $users = $stmt->fetchAll();
 
 ### Why This Matters
 
-**❌ Dangerous (Never do this):**
+**??Dangerous (Never do this):**
 ```php
 // Direct concatenation = SQL injection vulnerability!
 $email = $_POST['email'];
@@ -114,7 +114,7 @@ $sql = "SELECT * FROM users WHERE email = '$email'";
 // This returns ALL users!
 ```
 
-**✅ Safe (EasyQuery way):**
+**??Safe (EasyQuery way):**
 ```php
 $email = $_POST['email'];
 $q = Builder::table('users')
@@ -216,6 +216,7 @@ $q = Builder::table('users')
 // Result:
 // sql: "SELECT * FROM users WHERE age >= ? AND score < ? AND name LIKE ?"
 // params: [18, 100, '%john%']
+```
 
 #### IN Operator
 
@@ -229,6 +230,7 @@ $q = Builder::table('users')
 // Result:
 // sql: "SELECT * FROM users WHERE id IN (?, ?, ?, ?, ?)"
 // params: [1, 2, 3, 4, 5]
+```
 
 #### BETWEEN Operator
 
@@ -242,6 +244,7 @@ $q = Builder::table('products')
 // Result:
 // sql: "SELECT * FROM products WHERE price BETWEEN ? AND ?"
 // params: [100, 500]
+```
 
 #### OR Conditions
 
@@ -267,6 +270,7 @@ $q = Builder::table('users')
     ->build();
 // WHERE status = ? AND (role = ? OR role = ? OR permissions LIKE ?)
 // params: ['active', 'admin', 'moderator', '%manage%']
+```
 
 ### INSERT Queries
 
@@ -779,17 +783,17 @@ This library uses **prepared statements with parameter binding** to protect agai
 **Important:** Use `raw()` only with trusted data or SQL functions. Never use `raw()` with user input:
 
 ```php
-// ✅ SAFE - Using parameter binding
+// ??SAFE - Using parameter binding
 $q = Builder::table('users')
     ->where(['email' => $_POST['email']])
     ->build();
 
-// ✅ SAFE - Using raw() with SQL functions
+// ??SAFE - Using raw() with SQL functions
 $q = Builder::table('users')
     ->update(['updated_at' => Builder::raw('NOW()')])
     ->build();
 
-// ❌ DANGEROUS - Never do this!
+// ??DANGEROUS - Never do this!
 $q = Builder::table('users')
     ->where(['email' => Builder::raw("'{$_POST['email']}'")]) // SQL injection risk!
     ->build();
