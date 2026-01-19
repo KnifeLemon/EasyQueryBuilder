@@ -232,6 +232,20 @@ $q = Builder::table('users')
 // params: [1, 2, 3, 4, 5]
 ```
 
+#### NOT IN Operator
+
+```php
+$q = Builder::table('users')
+    ->where([
+        'status' => ['NOT IN', ['banned', 'deleted', 'suspended']]
+    ])
+    ->build();
+
+// Result:
+// sql: "SELECT * FROM users WHERE status NOT IN (?, ?, ?)"
+// params: ['banned', 'deleted', 'suspended']
+```
+
 #### BETWEEN Operator
 
 ```php
@@ -359,6 +373,73 @@ $q = Builder::table('products')
 // Result:
 // sql: "SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products)"
 // params: []
+```
+
+#### Raw SQL with Bindings
+
+When you need parameterized values in raw expressions:
+
+```php
+// Raw expression with bound parameters
+$q = Builder::table('orders')
+    ->update([
+        'total' => Builder::raw('COALESCE(subtotal, ?) + ?', [0, 10])
+    ])
+    ->where(['id' => 1])
+    ->build();
+
+// Result:
+// sql: "UPDATE orders SET total = COALESCE(subtotal, ?) + ? WHERE id = ?"
+// params: [0, 10, 1]
+```
+
+#### Safe Identifiers for User Input
+
+When column names come from user input (e.g., dynamic sorting), use `safeIdentifier()` to prevent SQL injection:
+
+```php
+// Validate user-provided column name
+$sortColumn = $_GET['sort'];  // e.g., 'created_at'
+$safeColumn = Builder::safeIdentifier($sortColumn);
+
+$q = Builder::table('users')
+    ->orderBy($safeColumn . ' DESC')
+    ->build();
+
+// If user tries: "name; DROP TABLE users--"
+// Throws InvalidArgumentException: Invalid identifier
+```
+
+#### Safe Raw Expressions with User Input
+
+Use `rawSafe()` when building raw SQL with user-provided column names:
+
+```php
+// User selects which column to aggregate
+$userColumn = $_GET['aggregate_column'];  // e.g., 'total_amount'
+
+$q = Builder::table('orders')
+    ->select([
+        Builder::rawSafe('COALESCE(SUM({col}), ?)', ['col' => $userColumn], [0])->value . ' AS total'
+    ])
+    ->build();
+
+// Result (with safe column):
+// sql: "SELECT COALESCE(SUM(total_amount), ?) AS total FROM orders"
+// params: [0]
+
+// If user tries SQL injection, throws InvalidArgumentException
+```
+
+```php
+// Multiple safe identifiers
+use KnifeLemon\EasyQuery\BuilderRaw;
+
+$raw = BuilderRaw::withIdentifiers(
+    '{table}.{col1} + {table}.{col2}',
+    ['table' => 'orders', 'col1' => 'price', 'col2' => 'tax']
+);
+// Result: "orders.price + orders.tax"
 ```
 
 ## Framework Integration
@@ -507,6 +588,15 @@ Set the table name for the query.
 
 #### `Builder::raw(string $value): BuilderRaw`
 Create a raw SQL expression that will be inserted directly without parameter binding.
+
+#### `Builder::raw(string $value, array $bindings = []): BuilderRaw`
+Create a raw SQL expression with optional bound parameters for `?` placeholders.
+
+#### `Builder::rawSafe(string $expression, array $identifiers, array $bindings = []): BuilderRaw`
+Create a raw SQL expression with safe identifier substitution. Use `{placeholder}` syntax for identifiers.
+
+#### `Builder::safeIdentifier(string $identifier): string`
+Validate and return a safe column/table identifier. Only allows alphanumeric, underscores, and dots.
 
 ### Instance Methods
 
@@ -780,24 +870,54 @@ batchInsert($pdo, 'users', $users);
 
 This library uses **prepared statements with parameter binding** to protect against SQL injection attacks. Parameters are never directly concatenated into SQL strings.
 
-**Important:** Use `raw()` only with trusted data or SQL functions. Never use `raw()` with user input:
+### Safe Parameter Binding
 
 ```php
-// ??SAFE - Using parameter binding
+// ✅ SAFE - Using parameter binding
 $q = Builder::table('users')
     ->where(['email' => $_POST['email']])
     ->build();
 
-// ??SAFE - Using raw() with SQL functions
+// ✅ SAFE - Using raw() with SQL functions
 $q = Builder::table('users')
     ->update(['updated_at' => Builder::raw('NOW()')])
     ->build();
 
-// ??DANGEROUS - Never do this!
+// ❌ DANGEROUS - Never do this!
 $q = Builder::table('users')
-    ->where(['email' => Builder::raw("'{$_POST['email']}'")]) // SQL injection risk!
+    ->where(['email' => Builder::raw("'{$_POST['email']}'")])  // SQL injection risk!
     ->build();
 ```
+
+### Safe Column Names from User Input
+
+When column names come from user input (e.g., sorting, aggregation), use these safety methods:
+
+```php
+// ✅ SAFE - Validate column name
+$sortColumn = Builder::safeIdentifier($_GET['sort']);
+$q = Builder::table('users')->orderBy($sortColumn . ' DESC')->build();
+
+// ✅ SAFE - Safe raw expression with user column
+$q = Builder::table('orders')
+    ->select([Builder::rawSafe('SUM({col})', ['col' => $_GET['column']])->value])
+    ->build();
+
+// ❌ DANGEROUS - Never concatenate user input in raw()
+$q = Builder::table('orders')
+    ->select([Builder::raw("SUM({$_GET['column']})")])
+    ->build();
+```
+
+### Allowed Identifier Characters
+
+`safeIdentifier()` and `rawSafe()` only allow:
+- Letters (a-z, A-Z)
+- Numbers (0-9)
+- Underscores (_)
+- Dots (.) for table.column notation
+
+Any other characters will throw an `InvalidArgumentException`.
 
 ## Debugging with Tracy
 

@@ -119,6 +119,35 @@ class BuilderTest extends TestCase
     }
 
     /**
+     * Test WHERE with NOT IN operator
+     */
+    public function testWhereWithNotIn(): void
+    {
+        $q = Builder::table('users')
+            ->where(['status' => ['NOT IN', ['banned', 'deleted', 'suspended']]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE status NOT IN (?, ?, ?)', $q['sql']);
+        $this->assertEquals(['banned', 'deleted', 'suspended'], $q['params']);
+    }
+
+    /**
+     * Test WHERE with NOT IN and other conditions
+     */
+    public function testWhereWithNotInAndOtherConditions(): void
+    {
+        $q = Builder::table('users')
+            ->where([
+                'role' => 'user',
+                'status' => ['NOT IN', ['banned', 'deleted']]
+            ])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE role = ? AND status NOT IN (?, ?)', $q['sql']);
+        $this->assertEquals(['user', 'banned', 'deleted'], $q['params']);
+    }
+
+    /**
      * Test WHERE with BETWEEN operator
      */
     public function testWhereWithBetween(): void
@@ -608,5 +637,83 @@ class BuilderTest extends TestCase
         $this->assertStringContainsString('WHERE role = ? AND verified = ?', $q2['sql']);
         $this->assertEquals(['admin', true], $q2['params']);
         $this->assertStringNotContainsString('status', $q2['sql']);
+    }
+
+    /**
+     * Test raw SQL with bindings in UPDATE
+     */
+    public function testRawSqlWithBindingsInUpdate(): void
+    {
+        $q = Builder::table('orders')
+            ->update([
+                'total' => Builder::raw('COALESCE(subtotal, ?) + ?', [0, 10])
+            ])
+            ->where(['id' => 1])
+            ->build();
+
+        $this->assertEquals('UPDATE orders SET total = COALESCE(subtotal, ?) + ? WHERE id = ?', $q['sql']);
+        $this->assertEquals([0, 10, 1], $q['params']);
+    }
+
+    /**
+     * Test rawSafe() for user-provided column names
+     */
+    public function testRawSafeWithUserInput(): void
+    {
+        $userColumn = 'total_amount';  // Simulating user input
+        
+        $q = Builder::table('orders')
+            ->select([
+                Builder::rawSafe('COALESCE(SUM({col}), ?)', ['col' => $userColumn], [0])->value . ' AS total'
+            ])
+            ->build();
+
+        $this->assertStringContainsString('COALESCE(SUM(total_amount), ?) AS total', $q['sql']);
+    }
+
+    /**
+     * Test safeIdentifier() validates column names
+     */
+    public function testSafeIdentifier(): void
+    {
+        $this->assertEquals('column_name', Builder::safeIdentifier('column_name'));
+        $this->assertEquals('table.column', Builder::safeIdentifier('table.column'));
+    }
+
+    /**
+     * Test safeIdentifier() throws exception for invalid input
+     */
+    public function testSafeIdentifierThrowsExceptionForInvalidInput(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Builder::safeIdentifier('column; DROP TABLE users--');
+    }
+
+    /**
+     * Test orWhere with NOT IN operator
+     */
+    public function testOrWhereWithNotIn(): void
+    {
+        $q = Builder::table('users')
+            ->where(['role' => 'admin'])
+            ->orWhere(['status' => ['NOT IN', ['banned', 'deleted']]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE role = ? AND (status NOT IN (?, ?))', $q['sql']);
+        $this->assertEquals(['admin', 'banned', 'deleted'], $q['params']);
+    }
+
+    /**
+     * Test orWhere with IN operator
+     */
+    public function testOrWhereWithIn(): void
+    {
+        $q = Builder::table('users')
+            ->where(['role' => 'admin'])
+            ->orWhere(['id' => ['IN', [1, 2, 3]]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE role = ? AND (id IN (?, ?, ?))', $q['sql']);
+        $this->assertEquals(['admin', 1, 2, 3], $q['params']);
     }
 }

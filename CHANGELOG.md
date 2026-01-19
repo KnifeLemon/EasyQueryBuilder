@@ -20,6 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed test files from GenerateQuery* to Builder* to match class names
 - Updated all documentation references from GenerateQuery to EasyQuery
 
+## [1.0.1] - 2026-01-19
+
+### Added
+- **NOT IN operator support**: Use `['column' => ['NOT IN', [values]]]` in where conditions
+- **Raw SQL with bindings**: `Builder::raw('COALESCE(amount, ?)', [0])` for parameterized raw expressions
+- **Safe identifier validation**: `Builder::safeIdentifier($userInput)` validates column/table names
+- **Safe raw expressions**: `Builder::rawSafe()` for user-provided column names with SQL injection protection
+- **BuilderRaw::withIdentifiers()**: Create raw expressions with multiple safe identifier substitutions
+- New tests for NOT IN, raw bindings, and identifier validation (62 tests, 129 assertions)
+
+### Security
+- Added protection for user-provided column names in raw SQL expressions
+- Identifier validation only allows alphanumeric characters, underscores, and dots
+
 ## [1.0.0] - 2026-01-15
 
 ### Added
@@ -46,5 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework agnostic design
 - Database agnostic (works with any DB driver)
 
-[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/knifelemon/EasyQueryBuilder/releases/tag/v1.0.0

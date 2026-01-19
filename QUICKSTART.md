@@ -105,6 +105,33 @@ $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $count = $result['cnt'];
 ```
 
+### NOT IN
+
+```php
+$q = Builder::table('users')
+    ->where(['status' => ['NOT IN', ['banned', 'deleted']]])
+    ->build();
+
+$stmt = $pdo->prepare($q['sql']);
+$stmt->execute($q['params']);
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+```
+
+### Safe Column Names from User Input
+
+```php
+// When sorting by user-selected column
+$sortColumn = Builder::safeIdentifier($_GET['sort']);  // Validates input
+$q = Builder::table('users')
+    ->orderBy($sortColumn . ' DESC')
+    ->build();
+
+// For aggregation with user-selected column
+$q = Builder::table('orders')
+    ->select([Builder::rawSafe('SUM({col})', ['col' => $_GET['column']])->value])
+    ->build();
+```
+
 ## FlightPHP Integration
 
 ```php

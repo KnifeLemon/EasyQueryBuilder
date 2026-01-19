@@ -59,8 +59,10 @@ class Builder {
      * Create a raw SQL expression (inserted directly without parameter binding)
      * 
      * WARNING: Use only with trusted data or SQL functions. Never use with user input.
+     * For user-provided column names, use Builder::rawSafe() or BuilderRaw::safeIdentifier().
      * 
      * @param string $value SQL expression string
+     * @param array<mixed> $bindings Optional bound parameters for ? placeholders in the expression
      * @return BuilderRaw Raw SQL object
      * 
      * Example:
@@ -69,9 +71,52 @@ class Builder {
      *         'points' => Builder::raw('GREATEST(0, points - 100)'),
      *         'updated_at' => Builder::raw('NOW()')
      *     ])
+     * 
+     * With bindings:
+     * Builder::raw('COALESCE(amount, ?)', [0])
      */
-    public static function raw(string $value) : BuilderRaw {
-        return new BuilderRaw($value);
+    public static function raw(string $value, array $bindings = []) : BuilderRaw {
+        return new BuilderRaw($value, $bindings);
+    }
+
+    /**
+     * Create a raw SQL expression with safe identifier substitution
+     * 
+     * Use this when building raw SQL with user-provided column/table names.
+     * Validates identifiers to prevent SQL injection.
+     * 
+     * @param string $expression SQL expression with {placeholder} markers for identifiers
+     * @param array<string, string> $identifiers Associative array ['placeholder' => 'column_name']
+     * @param array<mixed> $bindings Optional value bindings for ? placeholders
+     * @return BuilderRaw Raw SQL object with validated identifiers
+     * @throws \InvalidArgumentException If any identifier is invalid
+     * 
+     * Example:
+     * // User selects which column to sum - safely validated
+     * $column = $_GET['column']; // e.g., 'total_amount'
+     * Builder::table('orders')
+     *     ->select(Builder::rawSafe('COALESCE(SUM({col}), ?)', ['col' => $column], [0]))
+     */
+    public static function rawSafe(string $expression, array $identifiers, array $bindings = []) : BuilderRaw {
+        return BuilderRaw::withIdentifiers($expression, $identifiers, $bindings);
+    }
+
+    /**
+     * Validate and return a safe column/table identifier
+     * 
+     * Only allows alphanumeric characters, underscores, and dots (for table.column notation).
+     * Use this when the column name comes from user input.
+     * 
+     * @param string $identifier The column or table name to validate
+     * @return string Validated identifier
+     * @throws \InvalidArgumentException If identifier contains invalid characters
+     * 
+     * Example:
+     * $safeCol = Builder::safeIdentifier($_GET['sort_column']);
+     * Builder::table('users')->orderBy($safeCol . ' DESC');
+     */
+    public static function safeIdentifier(string $identifier) : string {
+        return BuilderRaw::safeIdentifier($identifier);
     }
 
     /**
@@ -214,11 +259,21 @@ class Builder {
                     $whereConditions[] = "{$column} IN ({$placeholders})";
                     $this->params = array_merge($this->params, $operandValue);
                 }
+                else if (strtoupper($operator) === 'NOT IN' && is_array($operandValue)) {
+                    // Handle NOT IN operator
+                    $placeholders = implode(', ', array_fill(0, count($operandValue), '?'));
+                    $whereConditions[] = "{$column} NOT IN ({$placeholders})";
+                    $this->params = array_merge($this->params, $operandValue);
+                }
                 else {
                     // General operators (=, !=, <, >, <=, >=, LIKE, etc.)
                     if ($operandValue instanceof BuilderRaw) {
                         // Raw SQL is inserted directly without binding
                         $whereConditions[] = "{$column} {$operator} {$operandValue->value}";
+                        // Support for raw expressions with bindings
+                        if ($operandValue->hasBindings()) {
+                            $this->params = array_merge($this->params, $operandValue->getBindings());
+                        }
                     } else {
                         $whereConditions[] = "{$column} {$operator} ?";
                         $this->params[] = $operandValue;
@@ -229,6 +284,10 @@ class Builder {
                 if ($value instanceof BuilderRaw) {
                     // Raw SQL is inserted directly without binding
                     $whereConditions[] = "{$column} = {$value->value}";
+                    // Support for raw expressions with bindings
+                    if ($value->hasBindings()) {
+                        $this->params = array_merge($this->params, $value->getBindings());
+                    }
                 } else {
                     $whereConditions[] = "{$column} = ?";
                     $this->params[] = $value;
@@ -444,8 +503,12 @@ class Builder {
                 $params = [];
                 foreach ($this->setData as $column => $value) {
                     if ($value instanceof BuilderRaw) {
-                        // Raw SQL?� 바인???�이 직접 ?�입
+                        // Raw SQL is inserted directly without binding
                         $sets[] = "{$column} = {$value->value}";
+                        // Support for raw expressions with bindings
+                        if ($value->hasBindings()) {
+                            $params = array_merge($params, $value->getBindings());
+                        }
                     } else {
                         $sets[] = "{$column} = ?";
                         $params[] = $value;
@@ -484,8 +547,12 @@ class Builder {
                 $params = [];
                 foreach ($this->setData as $column => $value) {
                     if ($value instanceof BuilderRaw) {
-                        // Raw SQL?� 바인???�이 직접 ?�입
+                        // Raw SQL is inserted directly without binding
                         $sets[] = "{$column} = {$value->value}";
+                        // Support for raw expressions with bindings
+                        if ($value->hasBindings()) {
+                            $params = array_merge($params, $value->getBindings());
+                        }
                     } else {
                         $sets[] = "{$column} = ?";
                         $params[] = $value;
@@ -571,10 +638,24 @@ class Builder {
                     if (is_array($operandValue)) {
                         $params = array_merge($params, $operandValue);
                     }
+                } else if (strtoupper($operator) === 'IN' && is_array($operandValue)) {
+                    // Handle IN operator
+                    $placeholders = implode(', ', array_fill(0, count($operandValue), '?'));
+                    $whereConditions[] = "{$column} IN ({$placeholders})";
+                    $params = array_merge($params, $operandValue);
+                } else if (strtoupper($operator) === 'NOT IN' && is_array($operandValue)) {
+                    // Handle NOT IN operator
+                    $placeholders = implode(', ', array_fill(0, count($operandValue), '?'));
+                    $whereConditions[] = "{$column} NOT IN ({$placeholders})";
+                    $params = array_merge($params, $operandValue);
                 } else {
                     if ($operandValue instanceof BuilderRaw) {
                         // Raw SQL is inserted directly without binding
                         $whereConditions[] = "{$column} {$operator} {$operandValue->value}";
+                        // Support for raw expressions with bindings
+                        if ($operandValue->hasBindings()) {
+                            $params = array_merge($params, $operandValue->getBindings());
+                        }
                     } else {
                         $whereConditions[] = "{$column} {$operator} ?";
                         $params[] = $operandValue;
@@ -584,6 +665,10 @@ class Builder {
                 if ($value instanceof BuilderRaw) {
                     // Raw SQL is inserted directly without binding
                     $whereConditions[] = "{$column} = {$value->value}";
+                    // Support for raw expressions with bindings
+                    if ($value->hasBindings()) {
+                        $params = array_merge($params, $value->getBindings());
+                    }
                 } else {
                     $whereConditions[] = "{$column} = ?";
                     $params[] = $value;
