@@ -29,6 +29,8 @@ class Builder {
     /** @var array<string, mixed> */
     private array $setData = [];
     private string $countColumn = '*';
+    /** @var array<string, mixed> */
+    private array $onDuplicateKeyUpdateData = [];
 
     /**
      * Constructor - Initialize Tracy logger if available
@@ -188,6 +190,25 @@ class Builder {
      */
     public function delete() : self {
         $this->action = 'delete';
+        return $this;
+    }
+
+    /**
+     * Set ON DUPLICATE KEY UPDATE clause for INSERT queries
+     * 
+     * Used with insert() to update existing rows when a duplicate key error occurs.
+     * Only works with MySQL/MariaDB.
+     * 
+     * @param array<string, mixed> $data Associative array ['column' => 'value'] to update on duplicate key
+     * @return self
+     * 
+     * Example:
+     * Builder::table('users')
+     *     ->insert(['email' => 'test@example.com', 'name' => 'Test', 'points' => 100])
+     *     ->onDuplicateKeyUpdate(['points' => Builder::raw('points + 100'), 'name' => 'Test Updated'])
+     */
+    public function onDuplicateKeyUpdate(array $data) : self {
+        $this->onDuplicateKeyUpdateData = array_merge($this->onDuplicateKeyUpdateData, $data);
         return $this;
     }
 
@@ -427,6 +448,7 @@ class Builder {
         $this->limit = 0;
         $this->offset = 0;
         $this->setData = [];
+        $this->onDuplicateKeyUpdateData = [];
         return $this;
     }
 
@@ -515,6 +537,26 @@ class Builder {
                     }
                 }
                 $sql = "INSERT INTO {$this->table} SET " . implode(', ', $sets);
+                
+                // Add ON DUPLICATE KEY UPDATE clause if specified
+                if (!empty($this->onDuplicateKeyUpdateData)) {
+                    $updateSets = [];
+                    foreach ($this->onDuplicateKeyUpdateData as $column => $value) {
+                        if ($value instanceof BuilderRaw) {
+                            // Raw SQL is inserted directly without binding
+                            $updateSets[] = "{$column} = {$value->value}";
+                            // Support for raw expressions with bindings
+                            if ($value->hasBindings()) {
+                                $params = array_merge($params, $value->getBindings());
+                            }
+                        } else {
+                            $updateSets[] = "{$column} = ?";
+                            $params[] = $value;
+                        }
+                    }
+                    $sql .= " ON DUPLICATE KEY UPDATE " . implode(', ', $updateSets);
+                }
+                
                 $result = [
                     'sql' => $sql,
                     'params' => $params

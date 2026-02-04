@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-02-04
+
+### Added
+- **ON DUPLICATE KEY UPDATE support**: Use `onDuplicateKeyUpdate()` method to handle duplicate key errors gracefully in INSERT queries (MySQL/MariaDB)
+  - Basic value updates: `->onDuplicateKeyUpdate(['column' => 'value'])`
+  - Increment values: `->onDuplicateKeyUpdate(['points' => Builder::raw('points + 100')])`
+  - Use VALUES() function: `->onDuplicateKeyUpdate(['points' => Builder::raw('points + VALUES(points)')])`
+- Test coverage for ON DUPLICATE KEY UPDATE functionality
+
+---
+**Note:** The following features were released in v1.0.1 but were initially marked as "Unreleased" and not included in the release notes above. 
+
+```
 ### Added
 - Query builder reuse methods: clearWhere(), clearSelect(), clearJoin(), clearGroupBy(), clearOrderBy(), clearLimit(), clearAll()
 - Comprehensive "Understanding build() Return Value" section in README
@@ -19,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved OR Conditions examples with multiple conditions
 - Renamed test files from GenerateQuery* to Builder* to match class names
 - Updated all documentation references from GenerateQuery to EasyQuery
+```
 
 ## [1.0.1] - 2026-01-19
 
@@ -60,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework agnostic design
 - Database agnostic (works with any DB driver)
 
-[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/knifelemon/EasyQueryBuilder/releases/tag/v1.0.0

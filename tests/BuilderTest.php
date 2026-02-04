@@ -716,4 +716,78 @@ class BuilderTest extends TestCase
         $this->assertEquals('SELECT * FROM users WHERE role = ? AND (id IN (?, ?, ?))', $q['sql']);
         $this->assertEquals(['admin', 1, 2, 3], $q['params']);
     }
+
+    /**
+     * Test INSERT with ON DUPLICATE KEY UPDATE
+     */
+    public function testInsertWithOnDuplicateKeyUpdate(): void
+    {
+        $q = Builder::table('users')
+            ->insert(['email' => 'test@example.com', 'name' => 'Test User', 'points' => 100])
+            ->onDuplicateKeyUpdate(['points' => 200, 'name' => 'Updated User'])
+            ->build();
+
+        $this->assertEquals(
+            'INSERT INTO users SET email = ?, name = ?, points = ? ON DUPLICATE KEY UPDATE points = ?, name = ?',
+            $q['sql']
+        );
+        $this->assertEquals(['test@example.com', 'Test User', 100, 200, 'Updated User'], $q['params']);
+    }
+
+    /**
+     * Test INSERT with ON DUPLICATE KEY UPDATE using raw SQL
+     */
+    public function testInsertWithOnDuplicateKeyUpdateRaw(): void
+    {
+        $q = Builder::table('users')
+            ->insert(['email' => 'test@example.com', 'name' => 'Test User', 'points' => 100])
+            ->onDuplicateKeyUpdate([
+                'points' => Builder::raw('points + 100'),
+                'updated_at' => Builder::raw('NOW()')
+            ])
+            ->build();
+
+        $this->assertEquals(
+            'INSERT INTO users SET email = ?, name = ?, points = ? ON DUPLICATE KEY UPDATE points = points + 100, updated_at = NOW()',
+            $q['sql']
+        );
+        $this->assertEquals(['test@example.com', 'Test User', 100], $q['params']);
+    }
+
+    /**
+     * Test INSERT with ON DUPLICATE KEY UPDATE with mixed values and raw SQL
+     */
+    public function testInsertWithOnDuplicateKeyUpdateMixed(): void
+    {
+        $q = Builder::table('users')
+            ->insert(['email' => 'test@example.com', 'name' => 'Test User', 'points' => 100])
+            ->onDuplicateKeyUpdate([
+                'points' => Builder::raw('points + VALUES(points)'),
+                'name' => 'Updated Name',
+                'login_count' => Builder::raw('login_count + 1')
+            ])
+            ->build();
+
+        $this->assertEquals(
+            'INSERT INTO users SET email = ?, name = ?, points = ? ON DUPLICATE KEY UPDATE points = points + VALUES(points), name = ?, login_count = login_count + 1',
+            $q['sql']
+        );
+        $this->assertEquals(['test@example.com', 'Test User', 100, 'Updated Name'], $q['params']);
+    }
+
+    /**
+     * Test INSERT without ON DUPLICATE KEY UPDATE
+     */
+    public function testInsertWithoutOnDuplicateKeyUpdate(): void
+    {
+        $q = Builder::table('users')
+            ->insert(['email' => 'test@example.com', 'name' => 'Test User'])
+            ->build();
+
+        $this->assertEquals(
+            'INSERT INTO users SET email = ?, name = ?',
+            $q['sql']
+        );
+        $this->assertEquals(['test@example.com', 'Test User'], $q['params']);
+    }
 }

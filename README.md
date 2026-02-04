@@ -302,6 +302,69 @@ $q = Builder::table('users')
 // params: ['John Doe', 'john@example.com', 'active']
 ```
 
+#### INSERT with ON DUPLICATE KEY UPDATE
+
+Use `onDuplicateKeyUpdate()` to handle duplicate key errors gracefully (MySQL/MariaDB only):
+
+```php
+// Basic usage - update specific columns on duplicate
+$q = Builder::table('users')
+    ->insert([
+        'email' => 'user@example.com',
+        'name' => 'John Doe',
+        'points' => 100
+    ])
+    ->onDuplicateKeyUpdate([
+        'name' => 'John Doe Updated',
+        'points' => 200
+    ])
+    ->build();
+
+// Result:
+// sql: "INSERT INTO users SET email = ?, name = ?, points = ? ON DUPLICATE KEY UPDATE name = ?, points = ?"
+// params: ['user@example.com', 'John Doe', 100, 'John Doe Updated', 200]
+```
+
+```php
+// Increment values on duplicate using raw SQL
+$q = Builder::table('users')
+    ->insert([
+        'email' => 'user@example.com',
+        'name' => 'John Doe',
+        'points' => 100
+    ])
+    ->onDuplicateKeyUpdate([
+        'points' => Builder::raw('points + 100'),
+        'login_count' => Builder::raw('login_count + 1'),
+        'updated_at' => Builder::raw('NOW()')
+    ])
+    ->build();
+
+// Result:
+// sql: "INSERT INTO users SET email = ?, name = ?, points = ? ON DUPLICATE KEY UPDATE points = points + 100, login_count = login_count + 1, updated_at = NOW()"
+// params: ['user@example.com', 'John Doe', 100]
+```
+
+```php
+// Use VALUES() to reference the inserted value
+$q = Builder::table('user_stats')
+    ->insert([
+        'user_id' => 123,
+        'views' => 10,
+        'clicks' => 5
+    ])
+    ->onDuplicateKeyUpdate([
+        'views' => Builder::raw('views + VALUES(views)'),
+        'clicks' => Builder::raw('clicks + VALUES(clicks)'),
+        'updated_at' => Builder::raw('NOW()')
+    ])
+    ->build();
+
+// Result:
+// sql: "INSERT INTO user_stats SET user_id = ?, views = ?, clicks = ? ON DUPLICATE KEY UPDATE views = views + VALUES(views), clicks = clicks + VALUES(clicks), updated_at = NOW()"
+// params: [123, 10, 5]
+```
+
 ### UPDATE Queries
 
 ```php
