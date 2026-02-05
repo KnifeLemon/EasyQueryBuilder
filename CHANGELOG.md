@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2.1] - 2026-02-05
+
+### Added
+- **IS NULL and IS NOT NULL operator support**: Use `['column' => ['IS', null]]` and `['column' => ['IS NOT', null]]` in WHERE conditions
+  - No parameter binding for NULL checks (correct SQL syntax)
+  - Works with both `where()` and `orWhere()` methods
+- Test coverage for IS NULL and IS NOT NULL operators (4 new tests)
+- Enhanced README documentation with IS NULL/IS NOT NULL examples
+
+### Fixed
+- IS NOT NULL operator now correctly generates `column IS NOT NULL` instead of `column IS NOT ?` with null parameter
+- Resolved issue where null values were incorrectly bound as parameters in IS/IS NOT operations
+
 ## [1.0.2] - 2026-02-04
 
 ### Added
@@ -74,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework agnostic design
 - Database agnostic (works with any DB driver)
 
-[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.1...HEAD
+[1.0.2.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2...v1.0.2.1
 [1.0.2]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/knifelemon/EasyQueryBuilder/releases/tag/v1.0.0

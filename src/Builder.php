@@ -286,6 +286,14 @@ class Builder {
                     $whereConditions[] = "{$column} NOT IN ({$placeholders})";
                     $this->params = array_merge($this->params, $operandValue);
                 }
+                else if (strtoupper($operator) === 'IS' && $operandValue === null) {
+                    // Handle IS NULL (no parameter binding)
+                    $whereConditions[] = "{$column} IS NULL";
+                }
+                else if (strtoupper($operator) === 'IS NOT' && $operandValue === null) {
+                    // Handle IS NOT NULL (no parameter binding)
+                    $whereConditions[] = "{$column} IS NOT NULL";
+                }
                 else {
                     // General operators (=, !=, <, >, <=, >=, LIKE, etc.)
                     if ($operandValue instanceof BuilderRaw) {
@@ -690,6 +698,12 @@ class Builder {
                     $placeholders = implode(', ', array_fill(0, count($operandValue), '?'));
                     $whereConditions[] = "{$column} NOT IN ({$placeholders})";
                     $params = array_merge($params, $operandValue);
+                } else if (strtoupper($operator) === 'IS' && $operandValue === null) {
+                    // Handle IS NULL (no parameter binding)
+                    $whereConditions[] = "{$column} IS NULL";
+                } else if (strtoupper($operator) === 'IS NOT' && $operandValue === null) {
+                    // Handle IS NOT NULL (no parameter binding)
+                    $whereConditions[] = "{$column} IS NOT NULL";
                 } else {
                     if ($operandValue instanceof BuilderRaw) {
                         // Raw SQL is inserted directly without binding

@@ -790,4 +790,61 @@ class BuilderTest extends TestCase
         );
         $this->assertEquals(['test@example.com', 'Test User'], $q['params']);
     }
+
+    /**
+     * Test WHERE with IS NULL operator
+     */
+    public function testWhereWithIsNull(): void
+    {
+        $q = Builder::table('users')
+            ->where(['deleted_at' => ['IS', null]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE deleted_at IS NULL', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test WHERE with IS NOT NULL operator
+     */
+    public function testWhereWithIsNotNull(): void
+    {
+        $q = Builder::table('users')
+            ->where(['email' => ['IS NOT', null]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE email IS NOT NULL', $q['sql']);
+        $this->assertEmpty($q['params']);
+    }
+
+    /**
+     * Test WHERE with mixed IS NOT NULL and other conditions
+     */
+    public function testWhereWithIsNotNullMixed(): void
+    {
+        $q = Builder::table('users')
+            ->where([
+                'kakao_sender_key' => ['IS NOT', null],
+                'is_delete' => 'N',
+            ])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE kakao_sender_key IS NOT NULL AND is_delete = ?', $q['sql']);
+        $this->assertEquals(['N'], $q['params']);
+    }
+
+    /**
+     * Test orWhere with IS NULL operator
+     */
+    public function testOrWhereWithIsNull(): void
+    {
+        $q = Builder::table('users')
+            ->where(['status' => 'active'])
+            ->orWhere(['deleted_at' => ['IS', null]])
+            ->build();
+
+        $this->assertEquals('SELECT * FROM users WHERE status = ? AND (deleted_at IS NULL)', $q['sql']);
+        $this->assertEquals(['active'], $q['params']);
+    }
 }
+

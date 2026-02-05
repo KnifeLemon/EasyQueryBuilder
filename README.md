@@ -260,6 +260,45 @@ $q = Builder::table('products')
 // params: [100, 500]
 ```
 
+#### IS NULL and IS NOT NULL
+
+```php
+// IS NULL - check for NULL values
+$q = Builder::table('users')
+    ->where(['deleted_at' => ['IS', null]])
+    ->build();
+
+// Result:
+// sql: "SELECT * FROM users WHERE deleted_at IS NULL"
+// params: []
+```
+
+```php
+// IS NOT NULL - check for non-NULL values
+$q = Builder::table('users')
+    ->where(['email' => ['IS NOT', null]])
+    ->build();
+
+// Result:
+// sql: "SELECT * FROM users WHERE email IS NOT NULL"
+// params: []
+```
+
+```php
+// Mixed with other conditions
+$q = Builder::table('users')
+    ->where([
+        'kakao_sender_key' => ['IS NOT', null],
+        'is_delete' => 'N',
+        'status' => 'active'
+    ])
+    ->build();
+
+// Result:
+// sql: "SELECT * FROM users WHERE kakao_sender_key IS NOT NULL AND is_delete = ? AND status = ?"
+// params: ['N', 'active']
+```
+
 #### OR Conditions
 
 Use `orWhere()` to add OR grouped conditions. Conditions within the same `orWhere()` call are joined with OR, and each group is added to the main query with AND.
