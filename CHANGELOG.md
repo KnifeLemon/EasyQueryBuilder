@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2.2] - 2026-02-19
+
+### Added
+- **Alias parameter in table() method**: The `table()` static method now accepts an optional second parameter for table alias
+  - Syntax: `Builder::table('users', 'u')` sets table alias in one call
+  - Simplifies initialization when table alias is known upfront
+  - Alternative to chaining `->alias()` method
+
+### Changed
+- `Builder::table()` method signature updated from `table(string $table)` to `table(string $table, string $alias = '')`
+
 ## [1.0.2.1] - 2026-02-05
 
 ### Added

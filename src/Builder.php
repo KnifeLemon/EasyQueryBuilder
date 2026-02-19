@@ -49,11 +49,13 @@ class Builder {
      * Set the table name for the query
      * 
      * @param string $table Table name
+     * @param string $alias Optional table alias
      * @return self New instance with table set
      */
-    public static function table(string $table) : self {
+    public static function table(string $table, string $alias = '') : self {
         $instance = new self();
         $instance->table = $table;
+        $instance->tableAlias = $alias;
         return $instance;
     }
 

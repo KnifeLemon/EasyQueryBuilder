@@ -164,6 +164,15 @@ $q = Builder::table('users')
 #### SELECT with Alias
 
 ```php
+// Method 1: Set alias in table() method (v1.0.2.2+)
+$q = Builder::table('users', 'u')
+    ->select(['u.id', 'u.name'])
+    ->where(['u.status' => 'active'])
+    ->orderBy('u.created_at DESC')
+    ->limit(10)
+    ->build();
+
+// Method 2: Set alias using alias() method
 $q = Builder::table('users')
     ->alias('u')
     ->select(['u.id', 'u.name'])
@@ -685,8 +694,8 @@ $users = $result->fetch_all(MYSQLI_ASSOC);
 
 ### Static Methods
 
-#### `Builder::table(string $table): Builder`
-Set the table name for the query.
+#### `Builder::table(string $table, string $alias = ''): Builder`
+Set the table name for the query. Optionally set a table alias in the same call.
 
 #### `Builder::raw(string $value): BuilderRaw`
 Create a raw SQL expression that will be inserted directly without parameter binding.
