@@ -34,6 +34,13 @@ class BuilderRaw {
     }
     
     /**
+     * 문자열로 변환 (implode 등에서 사용)
+     */
+    public function __toString(): string {
+        return $this->value;
+    }
+    
+    /**
      * Check if this raw expression has bound parameters
      * 
      * @return bool

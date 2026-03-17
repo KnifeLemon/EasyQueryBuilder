@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2.3] - 2026-03-18
+
+### Added
+- **BuilderRaw `__toString()` method**: `BuilderRaw` objects can now be cast to string automatically
+  - Enables use in `implode()`, string concatenation, and other string contexts
+  - Returns the raw SQL expression value
+
 ## [1.0.2.2] - 2026-02-19
 
 ### Added
@@ -98,7 +105,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework agnostic design
 - Database agnostic (works with any DB driver)
 
-[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.1...HEAD
+[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.3...HEAD
+[1.0.2.3]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.2...v1.0.2.3
+[1.0.2.2]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.1...v1.0.2.2
 [1.0.2.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2...v1.0.2.1
 [1.0.2]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.0...v1.0.1
