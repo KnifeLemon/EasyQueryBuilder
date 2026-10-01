@@ -183,6 +183,8 @@ class QueryPanel implements IBarPanel {
 
     /**
      * Render summary cards
+     *
+     * @param array<string, int> $metrics
      */
     private function renderSummaryCards(array $metrics) : string {
         $html = '<div class="gq-summary">';
@@ -224,6 +226,8 @@ class QueryPanel implements IBarPanel {
 
     /**
      * Render queries list
+     *
+     * @param array<int, array{id: int, action: string, input: array{table: string, alias: string, select: string, where: array<int, string>, joins: array<int, string>, groupBy: string, orderBy: string, limit: int, offset: int, setData: array<string, mixed>}, output: array{sql: string, params: array<mixed>}, timestamp: float}> $queries
      */
     private function renderQueriesList(array $queries) : string {
         $html = '';
@@ -263,6 +267,8 @@ class QueryPanel implements IBarPanel {
 
     /**
      * Render query details
+     *
+     * @param array{table: string, alias: string, select: string, where: array<int, string>, joins: array<int, string>, groupBy: string, orderBy: string, limit: int, offset: int, setData: array<string, mixed>} $input
      */
     private function renderQueryDetails(array $input) : string {
         $html = '';

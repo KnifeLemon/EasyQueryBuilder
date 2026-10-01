@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Aggregate functions**: `selectSum()`, `selectAvg()`, `selectMin()`, `selectMax()`, `selectCount()` with optional column and alias
+- **Distinct**: `distinct()` adds `DISTINCT` to SELECT queries
+- **Subqueries**: `selectSubquery(Builder $query, string $alias)` and `fromSubquery(Builder $query, string $alias)` with correctly ordered parameters
+- **IN conditions**: `whereIn()`, `orWhereIn()`, `whereNotIn()`, `orWhereNotIn()` accepting arrays or subquery Builders
+- **LIKE conditions**: `like()`, `orLike()`, `notLike()`, `orNotLike()` with position helpers (`'before'`, `'after'`, `'both'`, `'none'`). Values are bound and escaped with an explicit `ESCAPE '!'` clause for `NO_BACKSLASH_ESCAPES` compatibility
+- **Condition grouping**: `groupStart()`, `orGroupStart()`, `notGroupStart()`, `groupEnd()` with a helpful error on unbalanced groups
+- **HAVING conditions**: `having()` and `orHaving()` for filtered aggregate queries
+- **RIGHT JOIN**: `rightJoin()` convenience method
+- **UNION**: `union(Builder $query)` and `unionAll(Builder $query)`
+- **Batch writes**: `insertBatch(array $rows)`, `upsertBatch(array $rows, array $uniqueKeys)`, `updateBatch(array $rows, string $whereColumn)`, `deleteBatch(string $whereColumn, array $values)`
+- **Conditional chaining**: `when($condition, callable $callback)` and `whenNot($condition, callable $callback)`
+- **Query building options**: `build(bool $reset = false)` resets the builder when `$reset` is true, clearing conditions and resetting the action to `SELECT`; `orderBy(string $column, ?string $direction = null)` accepts either a full sort expression or a validated `ASC`/`DESC` direction
+- Test coverage for all new features
+
+### Fixed
+- PHPStan level-max compliance in `QueryLogger` and `QueryPanel` (documented array shapes)
+- Undefined array key warnings for batch query metrics in `QueryLogger`
+
 ## [1.0.2.3] - 2026-03-18
 
 ### Added

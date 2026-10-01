@@ -15,7 +15,10 @@ A lightweight, fluent PHP SQL query builder that generates SQL and parameters. D
 - 🔧 **Raw SQL Support** - Insert raw SQL expressions with `raw()`
 - 📝 **Multiple Query Types** - SELECT, INSERT, UPDATE, DELETE, COUNT
 - 🔀 **JOIN Support** - INNER, LEFT, RIGHT joins with aliases
-- 🎯 **Advanced Conditions** - LIKE, IN, BETWEEN, comparison operators
+- 🎯 **Advanced Conditions** - LIKE, IN, BETWEEN, comparison operators, grouped conditions
+- 📊 **Aggregates** - COUNT, SUM, AVG, MIN, MAX with DISTINCT and subqueries
+- 🧮 **Batch Writes** - insertBatch, updateBatch, upsertBatch, deleteBatch
+- 🪄 **Conditional Chaining** - `when()` / `whenNot()` for readable dynamic queries
 - 🌐 **Database Agnostic** - Returns SQL + params, use with any DB connection
 - 🪶 **Lightweight** - Minimal footprint with zero required dependencies
 
@@ -332,6 +335,257 @@ $q = Builder::table('users')
     ->build();
 // WHERE status = ? AND (role = ? OR role = ? OR permissions LIKE ?)
 // params: ['active', 'admin', 'moderator', '%manage%']
+```
+
+#### IN / NOT IN Methods
+
+```php
+// IN with an array of values
+$q = Builder::table('users')
+    ->where(['status' => 'active'])
+    ->whereIn('id', [1, 2, 3, 4, 5])
+    ->build();
+// sql: "SELECT * FROM users WHERE status = ? AND id IN (?, ?, ?, ?, ?)"
+// params: ['active', 1, 2, 3, 4, 5]
+
+// IN with a subquery
+$q = Builder::table('users')
+    ->whereIn('id', Builder::table('logs')->select('user_id')->where(['type' => 'signup']))
+    ->build();
+// sql: "SELECT * FROM users WHERE id IN (SELECT user_id FROM logs WHERE type = ?)"
+// params: ['signup']
+
+// NOT IN
+$q = Builder::table('users')
+    ->whereNotIn('status', ['banned', 'deleted'])
+    ->build();
+// sql: "SELECT * FROM users WHERE status NOT IN (?, ?)"
+// params: ['banned', 'deleted']
+```
+
+#### LIKE / NOT LIKE
+
+```php
+// LIKE with escaped wildcards and an explicit ESCAPE clause
+$q = Builder::table('products')
+    ->where(['category' => 'books'])
+    ->like('title', '100%')
+    ->build();
+// sql: "SELECT * FROM products WHERE category = ? AND title LIKE ? ESCAPE '!'"
+// params: ['books', '%100!%%']
+
+// Search only the start of the value
+$q = Builder::table('products')
+    ->like('title', 'PHP', 'after')
+    ->build();
+// sql: "SELECT * FROM products WHERE title LIKE ? ESCAPE '!'"
+// params: ['PHP%']
+
+// NOT LIKE
+$q = Builder::table('products')
+    ->notLike('title', 'expired')
+    ->build();
+// sql: "SELECT * FROM products WHERE title NOT LIKE ? ESCAPE '!'"
+// params: ['%expired%']
+```
+
+#### Grouped Conditions
+
+```php
+// AND group (nested parentheses)
+$q = Builder::table('orders')
+    ->where(['status' => 'open'])
+    ->groupStart()
+        ->where(['total' => ['>=', 100]])
+        ->where(['priority' => 'high'])
+    ->groupEnd()
+    ->build();
+// sql: "SELECT * FROM orders WHERE status = ? AND (total >= ? AND priority = ?)"
+// params: ['open', 100, 'high']
+
+// OR alternation via orWhere() (conditions within the same call are joined with OR)
+$q = Builder::table('orders')
+    ->where(['status' => 'open'])
+    ->where(['total' => ['>=', 100]])
+    ->orWhere(['priority' => 'high', 'urgent' => 1])
+    ->build();
+// sql: "SELECT * FROM orders WHERE status = ? AND total >= ? AND (priority = ? OR urgent = ?)"
+// params: ['open', 100, 'high', 1]
+
+// OR group via orGroupStart()
+$q = Builder::table('users')
+    ->where(['status' => 'active'])
+    ->orGroupStart()
+        ->where(['role' => 'admin'])
+        ->where(['plan' => 'premium'])
+    ->groupEnd()
+    ->build();
+// sql: "SELECT * FROM users WHERE status = ? OR (role = ? AND plan = ?)"
+// params: ['active', 'admin', 'premium']
+
+// Negated group
+$q = Builder::table('users')
+    ->where(['status' => 'active'])
+    ->notGroupStart()
+        ->where(['role' => 'guest'])
+        ->where(['banned' => 1])
+    ->groupEnd()
+    ->build();
+// sql: "SELECT * FROM users WHERE status = ? AND NOT (role = ? AND banned = ?)"
+// params: ['active', 'guest', 1]
+```
+
+### HAVING
+
+```php
+$q = Builder::table('orders')
+    ->select(['user_id', 'total'])
+    ->groupBy('user_id')
+    ->having(['total' => ['>', 1000]])
+    ->build();
+// sql: "SELECT user_id, total FROM orders GROUP BY user_id HAVING total > ?"
+// params: [1000]
+```
+
+### Aggregate Functions
+
+```php
+$q = Builder::table('orders')
+    ->selectCount('*', 'total_orders')
+    ->selectSum('amount', 'total_amount')
+    ->where(['status' => 'paid'])
+    ->build();
+// sql: "SELECT COUNT(*) AS total_orders, SUM(amount) AS total_amount FROM orders WHERE status = ?"
+// params: ['paid']
+
+$q = Builder::table('orders')
+    ->select(['user_id'])
+    ->selectAvg('amount')
+    ->selectMin('amount', 'min_amount')
+    ->selectMax('amount', 'max_amount')
+    ->groupBy('user_id')
+    ->build();
+// sql: "SELECT user_id, AVG(amount), MIN(amount) AS min_amount, MAX(amount) AS max_amount FROM orders GROUP BY user_id"
+// params: []
+```
+
+### DISTINCT
+
+```php
+$q = Builder::table('users')
+    ->distinct()
+    ->select(['country'])
+    ->build();
+// sql: "SELECT DISTINCT country FROM users"
+// params: []
+```
+
+### Subqueries
+
+```php
+// Subquery in the SELECT list
+$q = Builder::table('users')
+    ->select(['id', 'name'])
+    ->selectSubquery(
+        Builder::table('orders')->selectCount('*')->where(['user_id' => 42]),
+        'order_count'
+    )
+    ->build();
+// sql: "SELECT id, name, (SELECT COUNT(*) FROM orders WHERE user_id = ?) AS order_count FROM users"
+// params: [42]
+
+// Subquery as the FROM source
+$q = Builder::table('users')
+    ->fromSubquery(
+        Builder::table('users')->select(['id', 'email'])->where(['status' => 'active']),
+        'u'
+    )
+    ->where(['u.age' => ['>=', 18]])
+    ->build();
+// sql: "SELECT * FROM (SELECT id, email FROM users WHERE status = ?) AS u WHERE u.age >= ?"
+// params: ['active', 18]
+```
+
+### UNION
+
+```php
+$q = Builder::table('active_users')
+    ->select(['id', 'name'])
+    ->union(Builder::table('vip_users')->select(['id', 'name']))
+    ->build();
+// sql: "SELECT id, name FROM active_users UNION SELECT id, name FROM vip_users"
+// params: []
+
+// UNION ALL keeps duplicate rows
+$q = Builder::table('jan_orders')
+    ->unionAll(Builder::table('feb_orders'))
+    ->build();
+// sql: "SELECT * FROM jan_orders UNION ALL SELECT * FROM feb_orders"
+// params: []
+```
+
+### Batch Writes
+
+```php
+// Multi-row INSERT
+$q = Builder::table('users')
+    ->insertBatch([
+        ['name' => 'Alice', 'email' => 'alice@example.com'],
+        ['name' => 'Bob', 'email' => 'bob@example.com'],
+    ])
+    ->build();
+// sql: "INSERT INTO users (name, email) VALUES (?, ?), (?, ?)"
+// params: ['Alice', 'alice@example.com', 'Bob', 'bob@example.com']
+
+// Upsert with ON DUPLICATE KEY UPDATE
+$q = Builder::table('user_stats')
+    ->upsertBatch([
+        ['user_id' => 1, 'views' => 10],
+        ['user_id' => 2, 'views' => 5],
+    ], ['user_id'])
+    ->build();
+// sql: "INSERT INTO user_stats (user_id, views) VALUES (?, ?), (?, ?) ON DUPLICATE KEY UPDATE views = VALUES(views)"
+// params: [1, 10, 2, 5]
+
+// Multi-row UPDATE via CASE WHEN
+$q = Builder::table('users')
+    ->updateBatch([
+        ['id' => 1, 'status' => 'active'],
+        ['id' => 2, 'status' => 'disabled'],
+    ], 'id')
+    ->build();
+// sql: "UPDATE users SET status = CASE WHEN id = ? THEN ? WHEN id = ? THEN ? END WHERE id IN (?, ?)"
+// params: [1, 'active', 2, 'disabled', 1, 2]
+
+// Batch DELETE
+$q = Builder::table('users')
+    ->deleteBatch('id', [1, 2, 3])
+    ->build();
+// sql: "DELETE FROM users WHERE id IN (?, ?, ?)"
+// params: [1, 2, 3]
+```
+
+### Conditional Chaining
+
+```php
+$q = Builder::table('products')
+    ->when(!empty($categoryId), function ($query) use ($categoryId) {
+        $query->where(['category_id' => $categoryId]);
+    })
+    ->when(!empty($searchTerm), function ($query) use ($searchTerm) {
+        $query->like('name', $searchTerm);
+    })
+    ->build();
+```
+
+### Builder Reuse with build(true)
+
+```php
+// Reset a builder in one call (replaces manual clear*() calls)
+$q = Builder::table('users')
+    ->where(['status' => 'active'])
+    ->build(true);
+// $q is the query result; the builder is reset and ready for the next statement
 ```
 
 ### INSERT Queries
@@ -738,8 +992,107 @@ Add GROUP BY clause.
 #### `orderBy(string $orderBy): self`
 Add ORDER BY clause.
 
+#### `orderBy(string $column, ?string $direction = null): self`
+Add ORDER BY. Without a direction, `$orderBy` is treated as a full sort expression (e.g. `created_at DESC`). With a direction, the column is validated with `safeIdentifier()` and the direction must be `ASC` or `DESC`, making it safe for user input.
+
 #### `limit(int $limit, int $offset = 0): self`
 Add LIMIT and optional OFFSET.
+
+#### `distinct(): self`
+Add `DISTINCT` to the SELECT query.
+
+#### `selectSubquery(Builder $query, string $alias): self`
+Add a subquery as a SELECT column with an alias.
+
+#### `selectCount(string $column, string $alias = ''): self`
+Add `COUNT(column)` to the SELECT list.
+
+#### `selectSum(string $column, string $alias = ''): self`
+Add `SUM(column)` to the SELECT list.
+
+#### `selectAvg(string $column, string $alias = ''): self`
+Add `AVG(column)` to the SELECT list.
+
+#### `selectMin(string $column, string $alias = ''): self`
+Add `MIN(column)` to the SELECT list.
+
+#### `selectMax(string $column, string $alias = ''): self`
+Add `MAX(column)` to the SELECT list.
+
+#### `fromSubquery(Builder $query, string $alias): self`
+Use a subquery as the FROM source instead of the table.
+
+#### `whereIn(string $column, array $values): self`
+Add a `WHERE column IN (...)` condition.
+
+#### `whereIn(string $column, Builder $query): self`
+Add a `WHERE column IN (subquery)` condition with correctly ordered parameters.
+
+#### `orWhereIn(string $column, array|Builder $values): self`
+Add an OR `IN` condition (array or subquery).
+
+#### `whereNotIn(string $column, array|Builder $values): self`
+Add a `WHERE column NOT IN (...)` condition (array or subquery).
+
+#### `orWhereNotIn(string $column, array|Builder $values): self`
+Add an OR `NOT IN` condition (array or subquery).
+
+#### `like(string $column, string $value, string $position = 'both'): self`
+Add a `WHERE column LIKE ?` condition. Values are bound as parameters and escaped with an explicit `ESCAPE '!'` clause. `$position` is one of `'before'`, `'after'`, `'both'`, `'none'`.
+
+#### `orLike(string $column, string $value, string $position = 'both'): self`
+Add an OR `LIKE` condition.
+
+#### `notLike(string $column, string $value, string $position = 'both'): self`
+Add a `WHERE column NOT LIKE ?` condition.
+
+#### `orNotLike(string $column, string $value, string $position = 'both'): self`
+Add an OR `NOT LIKE` condition.
+
+#### `groupStart(): self`
+Open a new condition group joined with AND. Must be closed with `groupEnd()`.
+
+#### `orGroupStart(): self`
+Open a new condition group joined with OR. Must be closed with `groupEnd()`.
+
+#### `notGroupStart(): self`
+Open a negated condition group (`NOT (...)`). Must be closed with `groupEnd()`.
+
+#### `groupEnd(): self`
+Close an open condition group.
+
+#### `having(array $conditions): self`
+Add HAVING conditions for filtered aggregate queries.
+
+#### `orHaving(array $conditions): self`
+Add OR HAVING conditions.
+
+#### `rightJoin(string $table, string $condition, string $alias = ''): self`
+Add a RIGHT JOIN clause.
+
+#### `union(Builder $query): self`
+Add a UNION to the query.
+
+#### `unionAll(Builder $query): self`
+Add a UNION ALL to the query.
+
+#### `insertBatch(array $rows): self`
+Set the query action to a multi-row INSERT. All rows must contain the same columns. Raw `Builder::raw()` values are inlined.
+
+#### `upsertBatch(array $rows, array $uniqueKeys): self`
+Set the query action to INSERT ... ON DUPLICATE KEY UPDATE (MySQL/MariaDB). `$uniqueKeys` are the columns that define a duplicate row; remaining columns are updated with `VALUES(column)`.
+
+#### `updateBatch(array $rows, string $whereColumn): self`
+Set the query action to a multi-row UPDATE using CASE WHEN blocks. The `$whereColumn` value identifies each row and is also used in the final `WHERE ... IN (...)` clause.
+
+#### `deleteBatch(string $whereColumn, array $values): self`
+Set the query action to DELETE WHERE column IN (...).
+
+#### `when($condition, callable $callback): self`
+Conditionally apply query modifications. If `$condition` is truthy, `$callback($this)` is invoked. Always returns `$this` and leaves the builder usable.
+
+#### `whenNot($condition, callable $callback): self`
+Inverse of `when()`. The callback runs when the condition is falsy.
 
 #### `count(string $column = '*'): self`
 Set the query action to COUNT.
@@ -774,14 +1127,17 @@ Clear LIMIT and OFFSET.
 #### `clearAll(): self`
 Clear all query conditions (reset builder to initial state).
 
-#### `build(): array`
-Build and return the query as `['sql' => string, 'params' => array]`.
+#### `build(bool $reset = false): array`
+Build and return the query as `['sql' => string, 'params' => array]`. Pass `true` to reset the builder afterwards (opt-in; the builder is not reset by default). The reset clears the conditions and returns the action to `SELECT`, so the builder can be reused for any query type; the table and alias are preserved. Note this differs from `clearAll()`, which is called during the reset but deliberately preserves the action (existing behavior); `build(true)` resets it as an extra step.
 
 #### `get(): array`
 Alias for `build()`.
 
 #### `buildSQL(): string`
 Build and return only the SQL string (for SELECT queries).
+
+#### `getSQL(): string`
+Alias for `buildSQL()`.
 
 #### `getParams(): array`
 Get the parameter array for binding.

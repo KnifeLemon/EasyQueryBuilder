@@ -197,4 +197,18 @@ class BuilderRawTest extends TestCase
             ['col' => 'name; DROP TABLE users--']
         );
     }
+
+    /**
+     * Test __toString() returns the raw value for string contexts
+     */
+    public function testToStringReturnsRawValue(): void
+    {
+        $raw = new BuilderRaw('COALESCE(amount, ?)', [0]);
+
+        $this->assertEquals('COALESCE(amount, ?)', (string) $raw);
+        $this->assertEquals(
+            'a, b',
+            implode(', ', [new BuilderRaw('a'), new BuilderRaw('b')])
+        );
+    }
 }
