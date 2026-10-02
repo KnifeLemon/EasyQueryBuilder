@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-02
+
 ### Added
 - **Aggregate functions**: `selectSum()`, `selectAvg()`, `selectMin()`, `selectMax()`, `selectCount()` with optional column and alias
 - **Distinct**: `distinct()` adds `DISTINCT` to SELECT queries
@@ -23,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test coverage for all new features
 
 ### Fixed
+- `count()` no longer leaks select-subquery parameters, which caused a placeholder/parameter mismatch
+- `count()` emits JOIN clauses again (original behavior restored)
+- `delete()` no longer emits invalid `DELETE FROM (subquery)` SQL when `fromSubquery()` was set
 - PHPStan level-max compliance in `QueryLogger` and `QueryPanel` (documented array shapes)
 - Undefined array key warnings for batch query metrics in `QueryLogger`
 
@@ -124,7 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework agnostic design
 - Database agnostic (works with any DB driver)
 
-[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.3...HEAD
+[Unreleased]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.3...v1.1.0
 [1.0.2.3]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.2...v1.0.2.3
 [1.0.2.2]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2.1...v1.0.2.2
 [1.0.2.1]: https://github.com/knifelemon/EasyQueryBuilder/compare/v1.0.2...v1.0.2.1
